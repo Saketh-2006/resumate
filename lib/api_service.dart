@@ -116,21 +116,6 @@ class ApiService {
     return {'summary': summary};
   }
 
-  static Future<Map<String, dynamic>> askAssistant({
-    required String message,
-    required String resumeContext,
-  }) async {
-    final answer = await chat([
-      {'role': 'system', 'content': factualityRule},
-      {
-        'role': 'user',
-        'content':
-            'Resume context (may be empty):\n$resumeContext\n\nQuestion:\n$message',
-      },
-    ], maxTokens: 1200);
-    return {'answer': answer};
-  }
-
   /// Polishes descriptions and summary; returns the merged resume JSON.
   static Future<Map<String, dynamic>> generateResume(
     Map<String, dynamic> resumeData,

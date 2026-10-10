@@ -54,7 +54,31 @@ class _MyResumesPageState extends State<MyResumesPage> {
                   itemBuilder: (context, index) {
                     final resume = _resumes[index];
                     return FadeSlideIn(
+                      key: ValueKey(resume.id),
                       delay: Duration(milliseconds: 60 * index.clamp(0, 8)),
+                      child: Dismissible(
+                      key: ValueKey(resume.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: Icon(Icons.delete_outline, color: context.colors.coral),
+                      ),
+                      confirmDismiss: (_) => showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Delete this resume?'),
+                          content: const Text('It will be removed from this device.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Keep')),
+                            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Delete')),
+                          ],
+                        ),
+                      ),
+                      onDismissed: (_) {
+                        setState(() => _resumes.remove(resume));
+                        _storage.delete(resume.id);
+                      },
                       child: Card(
                       color: context.colors.sheet,
                       child: ListTile(
@@ -64,7 +88,7 @@ class _MyResumesPageState extends State<MyResumesPage> {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResumePreviewScreen(resumeData: resume))).then((_) => _refresh()),
                       ),
-                    ));
+                    )));
                   },
                 ),
               ),

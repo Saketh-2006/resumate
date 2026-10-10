@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'ai_assistant_screen.dart';
+import 'features/chat/career_assistant_page.dart';
 import 'api_service.dart';
 import 'edit_resume_screen.dart';
 import 'resume_data.dart';
@@ -312,7 +312,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AiAssistantScreen(resumeData: widget.resumeData),
+        builder: (_) => CareerAssistantPage(resume: widget.resumeData),
       ),
     );
   }
