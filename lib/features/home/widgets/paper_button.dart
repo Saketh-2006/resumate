@@ -15,9 +15,9 @@ class PaperButton extends StatelessWidget {
       icon: Icon(icon, size: 18),
       label: Text(label),
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.accent,
-        foregroundColor: Colors.white,
-        textStyle: const TextStyle(fontFamily: 'Georgia', fontWeight: FontWeight.w600, fontSize: 15),
+        backgroundColor: context.colors.accent,
+        foregroundColor: context.colors.sheet,
+        textStyle: const TextStyle(fontFamily: AppFonts.body, fontWeight: FontWeight.w600, fontSize: 15),
         padding: const EdgeInsets.symmetric(vertical: 17, horizontal: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
       ),

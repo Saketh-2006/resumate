@@ -83,13 +83,13 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.ink,
+                            color: context.colors.ink,
                           ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Clear, useful help for the parts of a job search that take time.',
-                      style: TextStyle(color: AppColors.muted, height: 1.45),
+                      style: TextStyle(color: context.colors.muted, height: 1.45),
                     ),
                     const SizedBox(height: 22),
                     ...[
@@ -103,7 +103,7 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                       (item) => Padding(
                         padding: const EdgeInsets.only(bottom: 9),
                         child: Material(
-                          color: AppColors.sheet,
+                          color: context.colors.sheet,
                           borderRadius: BorderRadius.circular(10),
                           child: InkWell(
                             onTap: () => _send(item.$2),
@@ -111,30 +111,30 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                             child: Container(
                               padding: const EdgeInsets.all(15),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.line),
+                                border: Border.all(color: context.colors.line),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.chat_bubble_outline,
                                     size: 19,
-                                    color: AppColors.accent,
+                                    color: context.colors.accent,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       item.$1,
-                                      style: const TextStyle(
-                                        color: AppColors.ink,
+                                      style: TextStyle(
+                                        color: context.colors.ink,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
-                                  const Icon(
+                                  Icon(
                                     Icons.arrow_outward,
                                     size: 16,
-                                    color: AppColors.muted,
+                                    color: context.colors.muted,
                                   ),
                                 ],
                               ),
@@ -161,16 +161,16 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: m.$2 ? AppColors.accent : AppColors.sheet,
+                            color: m.$2 ? context.colors.accent : context.colors.sheet,
                             borderRadius: BorderRadius.circular(14),
                             border: m.$2
                                 ? null
-                                : Border.all(color: AppColors.line),
+                                : Border.all(color: context.colors.line),
                           ),
                           child: SelectableText(
                             m.$1,
                             style: TextStyle(
-                              color: m.$2 ? Colors.white : AppColors.ink,
+                              color: m.$2 ? Colors.white : context.colors.ink,
                               height: 1.45,
                             ),
                           ),
@@ -194,9 +194,9 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
         ),
         Container(
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-          decoration: const BoxDecoration(
-            color: AppColors.paper,
-            border: Border(top: BorderSide(color: AppColors.line)),
+          decoration: BoxDecoration(
+            color: context.colors.paper,
+            border: Border(top: BorderSide(color: context.colors.line)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -217,7 +217,7 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                 onPressed: _loading ? null : () => _send(),
                 icon: const Icon(Icons.arrow_upward_rounded),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.accent,
+                  backgroundColor: context.colors.accent,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(50, 50),
                   shape: RoundedRectangleBorder(

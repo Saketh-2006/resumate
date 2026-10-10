@@ -37,9 +37,9 @@ class _MyResumesPageState extends State<MyResumesPage> {
             ? Center(child: Padding(
                 padding: const EdgeInsets.all(28),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.description_outlined, size: 48, color: AppColors.muted),
+                  Icon(Icons.description_outlined, size: 48, color: context.colors.muted),
                   const SizedBox(height: 12),
-                  const Text('Your saved resumes will appear here.', style: TextStyle(color: AppColors.muted)),
+                  Text('Your saved resumes will appear here.', style: TextStyle(color: context.colors.muted)),
                   const SizedBox(height: 12),
                   FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.add), label: const Text('Create a resume')),
                 ]),

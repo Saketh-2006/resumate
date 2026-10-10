@@ -155,15 +155,15 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_pageTitles[_page],
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.ink)),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: context.colors.ink)),
                 const SizedBox(height: 5),
                 Text(_pageDescriptions[_page],
-                  style: const TextStyle(color: AppColors.muted, height: 1.4)),
+                  style: TextStyle(color: context.colors.muted, height: 1.4)),
                 const SizedBox(height: 14),
                 Row(children: [
-                  Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: (_page + 1) / _pageTitles.length, minHeight: 6, backgroundColor: AppColors.line, color: AppColors.accent))),
+                  Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: (_page + 1) / _pageTitles.length, minHeight: 6, backgroundColor: context.colors.line, color: context.colors.accent))),
                   const SizedBox(width: 10),
-                  Text('Page ${_page + 1} of ${_pageTitles.length}', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                  Text('Page ${_page + 1} of ${_pageTitles.length}', style: TextStyle(fontSize: 12, color: context.colors.muted)),
                 ]),
               ]),
             ),
@@ -179,7 +179,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
                   onPressed: _next,
                   icon: Icon(_page == _pageTitles.length - 1 ? Icons.save_outlined : Icons.arrow_forward),
                   label: Text(_page == _pageTitles.length - 1 ? 'Save draft' : 'Continue'),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.accent, padding: const EdgeInsets.symmetric(vertical: 15)),
+                  style: FilledButton.styleFrom(backgroundColor: context.colors.accent, padding: const EdgeInsets.symmetric(vertical: 15)),
                 )),
               ]),
             ),
@@ -215,7 +215,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
       const SizedBox(height: 14),
       _input(_github, 'GitHub link', hint: 'https://github.com/username', type: TextInputType.url),
       _input(_linkedin, 'LinkedIn link', hint: 'https://linkedin.com/in/username', type: TextInputType.url),
-      const Text('* Required fields', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+      Text('* Required fields', style: TextStyle(fontSize: 12, color: context.colors.muted)),
     ]),
   );
 
@@ -230,18 +230,18 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
       OutlinedButton.icon(
         onPressed: () => setState(() => _education.add(_EducationEntry())),
         icon: const Icon(Icons.add_circle_outline), label: const Text('Add another education'),
-        style: OutlinedButton.styleFrom(foregroundColor: AppColors.accent, padding: const EdgeInsets.symmetric(vertical: 13)),
+        style: OutlinedButton.styleFrom(foregroundColor: context.colors.accent, padding: const EdgeInsets.symmetric(vertical: 13)),
       ),
       const SizedBox(height: 18),
       const _SectionHeading(icon: Icons.school_outlined, title: 'Schooling and intermediate (optional)'),
       const SizedBox(height: 5),
-      const Text('Optional — include your school or intermediate college and percentage if you wish.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4)),
+      Text('Optional — include your school or intermediate college and percentage if you wish.', style: TextStyle(fontSize: 13, color: context.colors.muted, height: 1.4)),
       const SizedBox(height: 12),
       _input(_education.first.school, 'School name (optional)', hint: 'School name', capitalization: TextCapitalization.words),
       _input(_education.first.schoolScore, 'School percentage (optional)', hint: 'e.g. 92%', type: TextInputType.number),
       _input(_education.first.intermediate, 'Intermediate college name (optional)', hint: 'College name', capitalization: TextCapitalization.words),
       _input(_education.first.intermediateScore, 'Intermediate percentage (optional)', hint: 'e.g. 88%', type: TextInputType.number),
-      const Text('* Required fields', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+      Text('* Required fields', style: TextStyle(fontSize: 12, color: context.colors.muted)),
     ]),
   );
 
@@ -251,7 +251,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
     children: [
       const _SectionHeading(icon: Icons.code, title: 'Programming languages'),
       const SizedBox(height: 5),
-      const Text('Choose one or more languages from the alphabetical list.', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+      Text('Choose one or more languages from the alphabetical list.', style: TextStyle(fontSize: 13, color: context.colors.muted)),
       const SizedBox(height: 12),
       DropdownButtonFormField<String>(
         key: ValueKey(_languageDropdownKey),
@@ -266,11 +266,11 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
       const SizedBox(height: 10),
       if (_languages.isNotEmpty) Wrap(spacing: 8, runSpacing: 5, children: [
         for (final language in _languages) InputChip(label: Text(language), onDeleted: () => setState(() => _languages.remove(language))),
-      ]) else const Text('Your selected languages will appear here.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+      ]) else Text('Your selected languages will appear here.', style: TextStyle(fontSize: 12, color: context.colors.muted)),
       const SizedBox(height: 24),
       const _SectionHeading(icon: Icons.auto_awesome_outlined, title: 'Other skills'),
       const SizedBox(height: 5),
-      const Text('Add tools, frameworks, databases, software, technical skills, or soft skills.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4)),
+      Text('Add tools, frameworks, databases, software, technical skills, or soft skills.', style: TextStyle(fontSize: 13, color: context.colors.muted, height: 1.4)),
       const SizedBox(height: 12),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: TextField(controller: _skillInput, textCapitalization: TextCapitalization.words,
@@ -325,7 +325,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
             Expanded(child: _dateField(_experiences[i], 'startDate', 'Start date')),
             const SizedBox(width: 12),
             Expanded(child: _experiences[i].ongoing
-              ? const Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Ongoing', style: TextStyle(color: AppColors.muted)))
+              ? Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Ongoing', style: TextStyle(color: context.colors.muted)))
               : _dateField(_experiences[i], 'endDate', 'End date')),
           ]),
           CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('I currently work here / continue this internship'), value: _experiences[i].ongoing,
@@ -374,10 +374,10 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
 
   Widget _entryCard({required String title, required _ResumeEntry entry, required VoidCallback onRemove, required List<Widget> children}) => Container(
     padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(color: AppColors.sheet, border: Border.all(color: AppColors.line), borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(color: context.colors.sheet, border: Border.all(color: context.colors.line), borderRadius: BorderRadius.circular(12)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink))),
-        IconButton(onPressed: onRemove, tooltip: 'Remove $title', icon: const Icon(Icons.delete_outline), color: AppColors.muted)]),
+      Row(children: [Expanded(child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.ink))),
+        IconButton(onPressed: onRemove, tooltip: 'Remove $title', icon: const Icon(Icons.delete_outline), color: context.colors.muted)]),
       ...children,
     ]),
   );
@@ -414,7 +414,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
 
   Widget _addButton(String label, IconData icon, VoidCallback onPressed) => OutlinedButton.icon(
     onPressed: onPressed, icon: Icon(icon), label: Text(label),
-    style: OutlinedButton.styleFrom(foregroundColor: AppColors.accent, padding: const EdgeInsets.symmetric(vertical: 13)),
+    style: OutlinedButton.styleFrom(foregroundColor: context.colors.accent, padding: const EdgeInsets.symmetric(vertical: 13)),
   );
 
   void _removeEntry(List<_ResumeEntry> list, _ResumeEntry entry) => setState(() { list.remove(entry); entry.dispose(); });
@@ -471,10 +471,10 @@ class _EmptyHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(color: AppColors.accentSoft, borderRadius: BorderRadius.circular(10)),
+    decoration: BoxDecoration(color: context.colors.accentSoft, borderRadius: BorderRadius.circular(10)),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Icon(Icons.info_outline, color: AppColors.accent, size: 19), const SizedBox(width: 10),
-      Expanded(child: Text(text, style: const TextStyle(color: AppColors.ink, height: 1.4, fontSize: 13))),
+      Icon(Icons.info_outline, color: context.colors.accent, size: 19), const SizedBox(width: 10),
+      Expanded(child: Text(text, style: TextStyle(color: context.colors.ink, height: 1.4, fontSize: 13))),
     ]),
   );
 }
@@ -492,10 +492,10 @@ class _EducationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(color: AppColors.sheet, border: Border.all(color: AppColors.line), borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(color: context.colors.sheet, border: Border.all(color: context.colors.line), borderRadius: BorderRadius.circular(12)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Expanded(child: Text('Education ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink))),
-        if (onRemove != null) IconButton(onPressed: onRemove, tooltip: 'Remove education', icon: const Icon(Icons.delete_outline), color: AppColors.muted)]),
+      Row(children: [Expanded(child: Text('Education ${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.ink))),
+        if (onRemove != null) IconButton(onPressed: onRemove, tooltip: 'Remove education', icon: const Icon(Icons.delete_outline), color: context.colors.muted)]),
       DropdownButtonFormField<String>(
         value: degrees.contains(entry.degree.text) ? entry.degree.text : null,
         decoration: const InputDecoration(labelText: 'Degree *'),
@@ -553,5 +553,5 @@ class _SectionHeading extends StatelessWidget {
   const _SectionHeading({required this.icon, required this.title});
   final IconData icon; final String title;
   @override
-  Widget build(BuildContext context) => Row(children: [Icon(icon, color: AppColors.accent, size: 20), const SizedBox(width: 9), Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.ink)))]);
+  Widget build(BuildContext context) => Row(children: [Icon(icon, color: context.colors.accent, size: 20), const SizedBox(width: 9), Expanded(child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.colors.ink)))]);
 }
