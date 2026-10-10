@@ -49,3 +49,6 @@ windows/flutter/ephemeral/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Local testing credentials
+/secrets.json

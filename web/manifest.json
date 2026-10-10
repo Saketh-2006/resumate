@@ -1,11 +1,11 @@
 {
-    "name": "ResuMate AI — Build. Improve. Get Resume-Ready.",
-    "short_name": "ResuMate AI",
+    "name": "Resumate — Your next chapter",
+    "short_name": "Resumate",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F7F7FC",
-    "theme_color": "#5B5BD6",
-    "description": "Build, improve, and preview a professional resume with ResuMate AI.",
+    "background_color": "#F6F1E8",
+    "theme_color": "#315C4C",
+    "description": "A thoughtful workspace for building your next resume.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,95 +1,15 @@
-# ResuMate AI
+# Resumate AI
 
-A cross-platform Flutter resume builder for Android, iOS, and Web. It helps users create, customize, preview, and export professional resumes, with an optional local AI assistant powered by Ollama.
+A Flutter career assistant powered by Groq's `openai/gpt-oss-120b` model. The app includes chat prompts for resume reviews, interview preparation, cover letters, and job-search advice.
 
-## Features
+## Run the app
 
-- Responsive Flutter interface with light and dark themes, onboarding, and animated interactions.
-- Guided resume creation for personal details, education, experience, projects, skills, certifications, and achievements.
-- Resume templates with customization options, preview, local draft saving, and PDF export.
-- Resume PDF upload and text extraction, content checks, and optional AI writing suggestions.
-- Optional LaTeX source and backend PDF generation when a LaTeX compiler is available.
+1. Install Flutter and connect an Android or iOS device (or start an emulator).
+2. From this directory, run `flutter pub get`.
+3. To use the local testing key, start the app with `flutter run --dart-define-from-file=secrets.json`. Otherwise, launch normally and tap the key icon to enter a Groq API key. Keys are stored using the platform's secure storage.
 
-## Requirements
+The app sends chat requests to `https://api.groq.com/openai/v1/chat/completions`. Create or manage keys in the [Groq Console](https://console.groq.com/keys). If a key was shared publicly, revoke it and create a new one before use.
 
-- Flutter SDK compatible with the Dart SDK constraint in `pubspec.yaml`.
-- Python 3.10 or later for the backend.
-- Ollama and the `qwen3:4b-instruct-2507-q4_K_M` model for local AI features.
-- Android Studio/Android SDK for Android builds. A Mac with Xcode is required to build for iOS.
+## Security note
 
-## Run the Flutter app on Web
-
-Open PowerShell in the project folder:
-
-```powershell
-cd C:\Projects\resumate_ai
-flutter pub get
-flutter run -d chrome
-```
-
-The Web app expects the backend at `http://127.0.0.1:8000` by default.
-
-## Set up and run the backend on Windows
-
-Open a separate PowerShell window:
-
-```powershell
-cd C:\Projects\resumate_ai\backend
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-ollama pull qwen3:4b-instruct-2507-q4_K_M
-$env:RESUMATE_AI_PROVIDER = 'ollama'
-$env:RESUMATE_AI_MODEL = 'qwen3:4b-instruct-2507-q4_K_M'
-.\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
-
-Keep Ollama and the backend running while using AI. Verify the backend in a browser at `http://127.0.0.1:8000/health`. The local model runs on the backend computer, so this setup needs no OpenAI API key or API credits. AI will be unavailable when Ollama or the backend is stopped.
-
-### Use an Android emulator
-
-The app uses `http://10.0.2.2:8000` by default on Android, which reaches the backend on the emulator's host computer. Start the backend as above, then run:
-
-```powershell
-cd C:\Projects\resumate_ai
-flutter run
-```
-
-### Use a physical Android phone over Wi-Fi
-
-The phone and computer must be connected to the same trusted Wi-Fi network or hotspot. The backend must listen on the network interface, and Windows Firewall may ask you to allow Python on private networks.
-
-1. Find the computer's IPv4 address for that Wi-Fi/hotspot with `ipconfig`.
-2. Start the backend with `--host 0.0.0.0` instead of `--host 127.0.0.1`:
-
-   ```powershell
-   .\.venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
-
-3. Build the app with that address (replace `192.168.1.25` with the actual IPv4 address):
-
-   ```powershell
-   cd C:\Projects\resumate_ai
-   flutter build apk --release --dart-define=RESUMATE_API_BASE_URL=http://192.168.1.25:8000
-   ```
-
-4. Install `build\app\outputs\flutter-apk\app-release.apk` on the phone and test `http://192.168.1.25:8000/health` in the phone's browser.
-
-This is a local-network setup for development or demonstrations, not a public service. If the computer's address or Wi-Fi network changes, rebuild the app with the new address. Keep the computer, Ollama, and backend on while using AI.
-
-## iOS
-
-Building and running the iOS app requires macOS and Xcode. Set `RESUMATE_API_BASE_URL` to a backend address reachable from the iOS device. For a deployed backend, use HTTPS.
-
-## API provider options
-
-Local Ollama is the default provider. To use OpenAI instead, configure `OPENAI_API_KEY` in the backend environment and set `RESUMATE_AI_PROVIDER` to `openai`. Never put provider keys in Flutter code, build arguments, or Git commits.
-
-The backend provides `/health`, `/api/resume/analyze`, `/api/ai/improve`, `/api/ai/summary`, `/api/assistant/chat`, `/api/resume/generate`, and `/api/resume/pdf`.
-
-## Data and Firebase
-
-Resume drafts and profile photos are stored locally on the user's device. Firebase Authentication and cloud resume storage are not currently connected to the app. Firestore and Storage security rules are included as preparation, but no Firebase project configuration is included. Firebase setup is only required for sign-in, cloud backup, or syncing resumes between devices.
-
-## Public deployment
-
-The local backend and Ollama setup is intended for development and demos. To serve other users over the internet, deploy the backend and configure the app to use its HTTPS URL. Do not expose Ollama or a private LAN address as a public backend. Store any production API credentials in the hosting provider's secret settings, not in this repository.
+Device secure storage protects the saved key at rest, but a mobile client must still use the key to make requests. For a publicly distributed app, put Groq calls behind your own authenticated backend so the Groq key is never distributed to users' devices. Never commit an API key to this repository.
