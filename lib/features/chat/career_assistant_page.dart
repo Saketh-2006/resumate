@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
+import '../../api_service.dart';
 import '../../theme/app_theme.dart';
 
 class CareerAssistantPage extends StatefulWidget {
@@ -11,10 +9,6 @@ class CareerAssistantPage extends StatefulWidget {
 }
 
 class _CareerAssistantPageState extends State<CareerAssistantPage> {
-  static const _storage = FlutterSecureStorage();
-  static const _endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-  static const _model = 'openai/gpt-oss-120b';
-  static const _buildApiKey = String.fromEnvironment('GROQ_API_KEY');
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _messages = <(String, bool)>[];
@@ -34,21 +28,8 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
   }
 
   Future<void> _loadKey() async {
-    try {
-      final storedKey = await _storage.read(key: 'groq_api_key');
-      final key = storedKey?.trim().isNotEmpty == true
-          ? storedKey!.trim()
-          : _buildApiKey.trim();
-      if (storedKey == null && key.isNotEmpty) {
-        await _storage.write(key: 'groq_api_key', value: key);
-      }
-      if (mounted) setState(() => _key = key.isEmpty ? null : key);
-    } catch (_) {
-      if (mounted) {
-        final key = _buildApiKey.trim();
-        setState(() => _key = key.isEmpty ? null : key);
-      }
-    }
+    final key = await ApiService.loadKey();
+    if (mounted) setState(() => _key = key);
   }
 
   Future<void> _settings() async {
@@ -80,15 +61,15 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
     controller.dispose();
     if (value == null) return;
     if (value.isEmpty) {
-      await _storage.delete(key: 'groq_api_key');
-      setState(() => _key = null);
+      await ApiService.saveKey(null);
+      if (mounted) setState(() => _key = null);
       return;
     }
     if (!value.startsWith('gsk_')) {
       _notice('That key does not look like a Groq API key.');
       return;
     }
-    await _storage.write(key: 'groq_api_key', value: value);
+    await ApiService.saveKey(value);
     if (mounted) setState(() => _key = value);
   }
 
@@ -115,34 +96,7 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
           (m) => {'role': m.$2 ? 'user' : 'assistant', 'content': m.$1},
         ),
       ];
-      final response = await http
-          .post(
-            Uri.parse(_endpoint),
-            headers: {
-              'Authorization': 'Bearer $_key',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'model': _model,
-              'messages': history,
-              'temperature': 0.7,
-              'max_tokens': 1200,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        final err = data['error'];
-        throw Exception(
-          err is Map
-              ? err['message']
-              : 'Request failed (${response.statusCode}).',
-        );
-      }
-      final answer =
-          (((data['choices'] as List).first as Map)['message']
-                  as Map)['content']
-              as String;
+      final answer = await ApiService.chat(history, temperature: 0.7);
       if (mounted) {
         setState(() => _messages.add((answer.trim(), false)));
       }

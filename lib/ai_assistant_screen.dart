@@ -62,9 +62,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       });
     } catch (error) {
       if (!mounted) return;
-      final errorMessage = error is TimeoutException
-          ? 'The local AI is taking longer than expected to respond. The first reply can be slow while the model loads. Wait a moment and try again.'
-          : 'Could not reach the AI service. Make sure both the backend and Ollama are running, then try again. Details: $error';
+      final errorMessage = error.toString().replaceFirst('Exception: ', '');
       setState(() {
         _messages.add((
           text: errorMessage,
@@ -107,7 +105,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                               if (widget.resumeData != null) ...[
                                 const SizedBox(height: 10),
                                 const Text(
-                                  'This conversation sends the resume details shown in the app to your configured backend for an answer.',
+                                  'This conversation sends the resume details shown in the app to Groq for an answer.',
                                 ),
                               ],
                               const SizedBox(height: 20),

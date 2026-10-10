@@ -37,7 +37,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
     widget.resumeData.templateId = _selected;
     widget.resumeData.customAccentColor = _selectedAccent;
     widget.resumeData.fontScale = _fontScale;
-    Navigator.pushNamed(context, '/preview', arguments: widget.resumeData);
+    Navigator.pop(context);
   }
 
   Future<void> _customize() async {
@@ -243,7 +243,7 @@ class _TemplateScreenState extends State<TemplateScreen> {
                         Expanded(
                           child: FilledButton(
                             onPressed: _preview,
-                            child: const Text('Preview resume'),
+                            child: const Text('Use this template'),
                           ),
                         ),
                       ],
