@@ -448,7 +448,7 @@ class _ScribblePainter extends CustomPainter {
         }
       }
     }
-    tip ??= progress < .8 ? null : const Offset(118, 168);
+    tip ??= progress < .8 ? null : const Offset(124, 30);
     if (tip != null) _pencil(canvas, tip, lift: progress >= .8 ? (progress - .8) * 60 : 0);
   }
 
