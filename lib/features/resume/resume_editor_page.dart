@@ -549,18 +549,6 @@ class _EducationCard extends StatelessWidget {
   }
 }
 
-class _StepPill extends StatelessWidget {
-  const _StepPill({required this.number, required this.label, this.active = false, this.complete = false});
-  final String number; final String label; final bool active; final bool complete;
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    CircleAvatar(radius: 13, backgroundColor: active || complete ? AppColors.accent : AppColors.line,
-      child: complete ? const Icon(Icons.check, size: 15, color: Colors.white) : Text(number, style: TextStyle(fontSize: 12, color: active ? Colors.white : AppColors.muted))),
-    const SizedBox(width: 7), Text(label, style: TextStyle(fontSize: 12, fontWeight: active ? FontWeight.bold : FontWeight.normal, color: active ? AppColors.ink : AppColors.muted)),
-    const SizedBox(width: 12),
-  ]);
-}
-
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading({required this.icon, required this.title});
   final IconData icon; final String title;
