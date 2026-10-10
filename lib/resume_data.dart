@@ -9,14 +9,11 @@ class ResumeData {
   String linkedin;
   String github;
   String portfolio;
-  String leetcode;
   String schoolName;
   String tenthPercentage;
   String intermediateInstitution;
   String intermediateMarks;
   String summary;
-  String profilePhotoPath;
-  String profilePhotoData;
   String templateId;
   int? customAccentColor;
   double fontScale;
@@ -37,14 +34,11 @@ class ResumeData {
     this.linkedin = '',
     this.github = '',
     this.portfolio = '',
-    this.leetcode = '',
     this.schoolName = '',
     this.tenthPercentage = '',
     this.intermediateInstitution = '',
     this.intermediateMarks = '',
     this.summary = '',
-    this.profilePhotoPath = '',
-    this.profilePhotoData = '',
     this.templateId = 'modern',
     this.customAccentColor,
     this.fontScale = 1.0,
@@ -71,14 +65,11 @@ class ResumeData {
         'linkedin': linkedin,
         'github': github,
         'portfolio': portfolio,
-        'leetcode': leetcode,
         'schoolName': schoolName,
         'tenthPercentage': tenthPercentage,
         'intermediateInstitution': intermediateInstitution,
         'intermediateMarks': intermediateMarks,
         'summary': summary,
-        'profilePhotoPath': profilePhotoPath,
-        'profilePhotoData': profilePhotoData,
         'templateId': templateId,
         'customAccentColor': customAccentColor,
         'fontScale': fontScale,
@@ -101,14 +92,11 @@ class ResumeData {
         linkedin: _string(json['linkedin']),
         github: _string(json['github']),
         portfolio: _string(json['portfolio']),
-        leetcode: _string(json['leetcode']),
         schoolName: _string(json['schoolName']),
         tenthPercentage: _string(json['tenthPercentage']),
         intermediateInstitution: _string(json['intermediateInstitution']),
         intermediateMarks: _string(json['intermediateMarks']),
         summary: _string(json['summary']),
-        profilePhotoPath: _string(json['profilePhotoPath']),
-        profilePhotoData: _string(json['profilePhotoData']),
         templateId: _string(json['templateId'], fallback: 'modern'),
         customAccentColor: json['customAccentColor'] is int
             ? json['customAccentColor'] as int

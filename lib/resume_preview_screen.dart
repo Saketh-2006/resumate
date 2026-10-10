@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import 'ai_assistant_screen.dart';
@@ -71,8 +69,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   }
 
   Widget _buildHeader(ResumeData resume) {
-    final showPhoto = resume.profilePhotoData.isNotEmpty &&
-        _template.layout != 'ats';
     final name = resume.name.isEmpty ? 'Your Name' : resume.name;
     final contact = [resume.email, resume.phone, resume.location]
         .where((item) => item.isNotEmpty)
@@ -86,16 +82,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       fontWeight: FontWeight.w700,
       fontFamily: _template.layout == 'editorial' ? 'serif' : null,
     );
-    final photo = showPhoto
-        ? CircleAvatar(
-            radius: _template.layout == 'banner' ? 72 : 76,
-            backgroundColor: Colors.white,
-            child: CircleAvatar(
-              radius: _template.layout == 'banner' ? 68 : 72,
-              backgroundImage: MemoryImage(base64Decode(resume.profilePhotoData)),
-            ),
-          )
-        : null;
 
     if (_template.layout == 'banner') {
       return Container(
@@ -123,7 +109,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                 ],
               ),
             ),
-            if (photo != null) ...[const SizedBox(width: 14), photo],
           ],
         ),
       );
@@ -132,7 +117,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     if (_template.layout == 'centered') {
       return Column(
         children: [
-          if (photo != null) ...[photo, const SizedBox(height: 12)],
           Text(name, textAlign: TextAlign.center, style: titleStyle),
           if (contact.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -165,7 +149,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
             ],
           ),
         ),
-        if (photo != null) ...[const SizedBox(width: 16), photo],
       ],
     );
   }
@@ -207,7 +190,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       builder: (dialogContext) => AlertDialog(
         title: const Text('Send resume details for AI editing?'),
         content: const Text(
-          'This sends your resume fields—including your name, email, phone, location, education, and work history—to Groq (gpt-oss-120b). Your profile photo is excluded. The AI will suggest clearer English without adding facts. Review every change before applying it.',
+          'This sends your resume fields—including your name, email, phone, location, education, and work history—to Groq (gpt-oss-120b). The AI will suggest clearer English without adding facts. Review every change before applying it.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
@@ -220,8 +203,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     setState(() => _polishing = true);
     try {
       final facts = widget.resumeData.toJson()
-        ..remove('profilePhotoData')
-        ..remove('profilePhotoPath')
         ..remove('id')
         ..remove('updatedAt');
       facts['templateColor'] = _accent.toARGB32();

@@ -76,8 +76,6 @@ class _EditResumeScreenState extends State<EditResumeScreen> {
   Future<void> _generateSummary(TextEditingController controller) async {
     try {
       final resumeFacts = resume.toJson()
-        ..remove('profilePhotoData')
-        ..remove('profilePhotoPath')
         ..remove('id')
         ..remove('updatedAt')
         ..remove('email')
@@ -86,7 +84,7 @@ class _EditResumeScreenState extends State<EditResumeScreen> {
         ..remove('linkedin')
         ..remove('github')
         ..remove('portfolio')
-        ..remove('leetcode');
+;
       final response = await ApiService.generateSummary(resumeFacts);
       if (!mounted) return;
       final suggested = response['summary'] as String? ?? '';
