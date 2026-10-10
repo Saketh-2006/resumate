@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import 'ai_assistant_screen.dart';
 import 'api_service.dart';
@@ -8,6 +10,7 @@ import 'edit_resume_screen.dart';
 import 'resume_data.dart';
 import 'services/draft_storage.dart';
 import 'services/latex_export_service.dart';
+import 'services/latex_resume_service.dart';
 import 'services/pdf_export_service.dart';
 import 'resume_templates.dart';
 
@@ -26,6 +29,9 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   bool _exporting = false;
   bool _polishing = false;
   String? _latexSource;
+  Uint8List? _pdfBytes;
+  bool _compiling = false;
+  bool _showPdf = true;
   late final AnimationController _entrance = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1350),
@@ -45,6 +51,32 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   void dispose() {
     _entrance.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _latexSource = LatexResumeService.create(widget.resumeData);
+    _compilePreview();
+  }
+
+  Future<void> _compilePreview() async {
+    final source = _latexSource;
+    if (source == null) return;
+    setState(() => _compiling = true);
+    try {
+      final bytes = await ApiService.compileLatexPdf(source);
+      if (mounted) setState(() => _pdfBytes = Uint8List.fromList(bytes));
+    } catch (error) {
+      if (mounted) _showError('Could not compile the LaTeX PDF: $error');
+    } finally {
+      if (mounted) setState(() => _compiling = false);
+    }
+  }
+
+  Future<void> _refreshLatex() async {
+    _latexSource = LatexResumeService.create(widget.resumeData);
+    await _compilePreview();
   }
 
   Widget _animateBlock(Widget child, int order) {
@@ -189,22 +221,14 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     setState(() => _exporting = true);
     try {
       if (_latexSource != null) {
-        try {
-          final pdf = await ApiService.compileLatexPdf(_latexSource!);
-          await LatexExportService.savePdf(pdf, widget.resumeData.name);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('LaTeX PDF is ready to save.')),
-            );
-          }
-          return;
-        } catch (error) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('LaTeX compiler unavailable; creating the app PDF instead. $error')),
-            );
-          }
+        final pdf = _pdfBytes ?? Uint8List.fromList(await ApiService.compileLatexPdf(_latexSource!));
+        await LatexExportService.savePdf(pdf, widget.resumeData.name);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('LaTeX PDF is ready to save.')),
+          );
         }
+        return;
       }
       final result = await PdfExportService.save(widget.resumeData);
       if (!mounted || result == null) return;
@@ -301,6 +325,8 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       await DraftStorage().save(current);
       if (!mounted) return;
       setState(() => _latexSource = source);
+      await _compilePreview();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reviewed AI wording applied. LaTeX source is ready to download.')),
       );
@@ -328,7 +354,27 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
         builder: (_) => EditResumeScreen(resumeData: widget.resumeData),
       ),
     );
-    if (mounted) setState(() {});
+    if (mounted) {
+      await DraftStorage().save(widget.resumeData);
+      await _refreshLatex();
+      setState(() {});
+    }
+  }
+
+  Future<void> _openSurgicalEdit() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _SurgicalEditSheet(
+        resume: widget.resumeData,
+        onApplied: () async {
+          await DraftStorage().save(widget.resumeData);
+          await _refreshLatex();
+          if (mounted) setState(() {});
+        },
+      ),
+    );
   }
 
   void _askAi() {
@@ -377,8 +423,28 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, icon: Icon(Icons.article_outlined), label: Text('Resume layout')),
+                ButtonSegment(value: true, icon: Icon(Icons.picture_as_pdf_outlined), label: Text('Compiled PDF')),
+              ],
+              selected: {_showPdf},
+              onSelectionChanged: (selection) => setState(() => _showPdf = selection.first),
+            ),
+          ),
           Expanded(
-            child: SingleChildScrollView(
+            child: _showPdf
+                ? _pdfBytes != null
+                    ? SfPdfViewer.memory(_pdfBytes!, key: ObjectKey(_pdfBytes!))
+                    : Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        if (_compiling) const CircularProgressIndicator(),
+                        const SizedBox(height: 12),
+                        Text(_compiling ? 'Compiling your LaTeX resume…' : 'The compiled PDF is unavailable. Check the backend connection.'),
+                        if (!_compiling) TextButton.icon(onPressed: _compilePreview, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+                      ]))
+                : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Center(
                 child: ConstrainedBox(
@@ -590,6 +656,11 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                     label: const Text('Ask AI'),
                   ),
                   OutlinedButton.icon(
+                    onPressed: _openSurgicalEdit,
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: const Text('Quick edit'),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: _polishing ? null : _polishResume,
                     icon: _polishing
                         ? const SizedBox.square(
@@ -599,12 +670,11 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                         : const Icon(Icons.auto_awesome),
                     label: Text(_polishing ? 'Writing…' : 'AI polish resume'),
                   ),
-                  if (_latexSource != null)
-                    OutlinedButton.icon(
-                      onPressed: _saveLatexSource,
-                      icon: const Icon(Icons.code),
-                      label: const Text('Download .tex'),
-                    ),
+                  OutlinedButton.icon(
+                    onPressed: _saveLatexSource,
+                    icon: const Icon(Icons.code),
+                    label: const Text('Download .tex'),
+                  ),
                   OutlinedButton.icon(
                     onPressed: _saving ? null : () => _saveDraft(returnHome: true),
                     icon: const Icon(Icons.save_outlined),
@@ -673,4 +743,116 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
           ],
         ),
       );
+}
+
+class _SurgicalEditSheet extends StatefulWidget {
+  const _SurgicalEditSheet({required this.resume, required this.onApplied});
+  final ResumeData resume;
+  final Future<void> Function() onApplied;
+
+  @override
+  State<_SurgicalEditSheet> createState() => _SurgicalEditSheetState();
+}
+
+class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
+  final _instruction = TextEditingController();
+  String _target = 'summary';
+  String? _suggestion;
+  String? _lastRequest;
+  bool _sending = false;
+
+  @override
+  void dispose() { _instruction.dispose(); super.dispose(); }
+
+  List<(String, String)> get _targets => [
+    if (widget.resume.summary.trim().isNotEmpty) ('summary', 'Profile summary'),
+    for (var i = 0; i < widget.resume.experiences.length; i++)
+      if (widget.resume.experiences[i].description.trim().isNotEmpty) ('experience:$i', 'Experience · ${widget.resume.experiences[i].jobTitle}'),
+    for (var i = 0; i < widget.resume.projects.length; i++)
+      if (widget.resume.projects[i].description.trim().isNotEmpty) ('project:$i', 'Project · ${widget.resume.projects[i].name}'),
+    for (var i = 0; i < widget.resume.achievements.length; i++)
+      if (widget.resume.achievements[i].description.trim().isNotEmpty) ('achievement:$i', 'Achievement · ${widget.resume.achievements[i].title}'),
+  ];
+
+  String _textFor(String key) {
+    if (key == 'summary') return widget.resume.summary;
+    final parts = key.split(':');
+    final index = int.parse(parts[1]);
+    return switch (parts[0]) {
+      'experience' => widget.resume.experiences[index].description,
+      'project' => widget.resume.projects[index].description,
+      _ => widget.resume.achievements[index].description,
+    };
+  }
+
+  Future<void> _send() async {
+    final instruction = _instruction.text.trim();
+    if (instruction.isEmpty || _targets.isEmpty) return;
+    setState(() { _sending = true; _suggestion = null; _lastRequest = instruction; });
+    try {
+      final original = _textFor(_target);
+      final response = await ApiService.surgicalEdit(originalText: original, instruction: instruction);
+      if (!mounted) return;
+      setState(() { _suggestion = response['suggested'] as String?; });
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not prepare that edit: $error')));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _apply() async {
+    final suggestion = _suggestion;
+    if (suggestion == null) return;
+    setState(() => _setText(_target, suggestion));
+    await widget.onApplied();
+    if (mounted) setState(() { _suggestion = null; _instruction.clear(); });
+  }
+
+  void _setText(String key, String text) {
+    if (key == 'summary') { widget.resume.summary = text; return; }
+    final parts = key.split(':'); final index = int.parse(parts[1]);
+    switch (parts[0]) {
+      case 'experience': widget.resume.experiences[index].description = text; break;
+      case 'project': widget.resume.projects[index].description = text; break;
+      default: widget.resume.achievements[index].description = text; break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final targets = _targets;
+    if (targets.isEmpty) {
+      return SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.chat_bubble_outline, size: 30), const SizedBox(height: 10),
+        const Text('Add a profile summary or a description first to make a quick edit.'),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+      ])));
+    }
+    if (!targets.any((item) => item.$1 == _target)) _target = targets.first.$1;
+    return SafeArea(child: Padding(
+      padding: EdgeInsets.fromLTRB(20, 6, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [const Expanded(child: Text('Quick resume edit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))]),
+        const Text('Choose one section. Review the suggestion before applying it.', style: TextStyle(color: Colors.black54)),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(initialValue: _target, decoration: const InputDecoration(labelText: 'Section'), items: [for (final item in targets) DropdownMenuItem(value: item.$1, child: Text(item.$2, overflow: TextOverflow.ellipsis))], onChanged: (value) => setState(() { if (value != null) { _target = value; _suggestion = null; } })),
+        const SizedBox(height: 9),
+        if (_lastRequest != null) Padding(padding: const EdgeInsets.only(bottom: 7), child: Text('You: $_lastRequest', maxLines: 2, overflow: TextOverflow.ellipsis)),
+        if (_suggestion != null) Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Current text', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600)),
+          Text(_textFor(_target)), const SizedBox(height: 8),
+          const Text('Suggested edit', style: TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 5),
+          Text(_suggestion!), const SizedBox(height: 10),
+          Row(children: [TextButton(onPressed: () => setState(() => _suggestion = null), child: const Text('Discard')), const Spacer(), FilledButton.icon(onPressed: _apply, icon: const Icon(Icons.check), label: const Text('Apply edit'))]),
+        ])),
+        const SizedBox(height: 9),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(child: TextField(controller: _instruction, minLines: 1, maxLines: 3, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: const InputDecoration(hintText: 'e.g. Make this more concise', border: OutlineInputBorder()))),
+          const SizedBox(width: 8),
+          IconButton.filled(onPressed: _sending ? null : _send, tooltip: 'Suggest a small edit', icon: _sending ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
+        ]),
+      ])),
+    ));
+  }
 }

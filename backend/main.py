@@ -72,6 +72,11 @@ class LatexRequest(BaseModel):
     latex_source: str = Field(min_length=1, max_length=50000)
 
 
+class SurgicalEditRequest(BaseModel):
+    original_text: str = Field(min_length=1, max_length=6000)
+    instruction: str = Field(min_length=1, max_length=1000)
+
+
 def _ai_provider():
     return os.getenv("RESUMATE_AI_PROVIDER", "ollama").strip().lower()
 
@@ -268,6 +273,32 @@ async def improve_text(request: ImproveRequest):
         ]
     )
     return {"original": request.text, "suggested": improved.strip()}
+
+
+@app.post("/api/resume/surgical-edit")
+async def surgical_edit(request: SurgicalEditRequest):
+    suggestion = await _complete(
+        [
+            {"role": "system", "content": FACTUALITY_RULE + " Return only the edited text."},
+            {
+                "role": "user",
+                "content": (
+                    "Make only the requested, narrowly scoped edit to this resume text. "
+                    "Preserve all facts; do not add claims, metrics, dates, skills, or "
+                    "responsibilities. Keep the same meaning and return only the revised "
+                    "text, with no explanation.\n\nRequested edit: "
+                    + request.instruction
+                    + "\n\nText to edit:\n"
+                    + request.original_text
+                ),
+            },
+        ],
+        max_tokens=700,
+    )
+    suggestion = suggestion.strip().strip('"')
+    if not suggestion or len(suggestion) > 8000:
+        raise HTTPException(status_code=502, detail="The AI returned an empty or oversized edit.")
+    return {"original": request.original_text, "suggested": suggestion}
 
 
 @app.post("/api/ai/summary")

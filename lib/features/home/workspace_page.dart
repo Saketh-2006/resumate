@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../chat/career_assistant_page.dart';
 import '../resume/resume_editor_page.dart';
 import '../resume/upload_resume_page.dart';
+import '../resume/my_resumes_page.dart';
 
 class WorkspacePage extends StatelessWidget {
   const WorkspacePage({super.key});
@@ -15,6 +16,8 @@ class WorkspacePage extends StatelessWidget {
       const SizedBox(height: 8), const Text('Pick up a fresh page, bring a resume you already have, or talk through your next step.', style: TextStyle(color: AppColors.muted, height: 1.5)),
       const SizedBox(height: 28),
       _WorkspaceChoice(icon: Icons.note_add_outlined, title: 'Create a new resume', subtitle: 'Build it section by section, at your own pace.', tag: 'START FRESH', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ResumeEditorPage()))),
+      const SizedBox(height: 13),
+      _WorkspaceChoice(icon: Icons.folder_open_outlined, title: 'My resumes', subtitle: 'Open, review, and download resumes saved on this device.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyResumesPage()))),
       const SizedBox(height: 13),
       _WorkspaceChoice(icon: Icons.file_upload_outlined, title: 'Upload a resume', subtitle: 'Bring an existing PDF or Word document to work on.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadResumePage()))),
       const SizedBox(height: 13),

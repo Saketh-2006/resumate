@@ -47,6 +47,14 @@ class ApiService {
   ) =>
       _request('/api/resume/generate', body: {'resume_data': resumeData});
 
+  static Future<Map<String, dynamic>> surgicalEdit({
+    required String originalText,
+    required String instruction,
+  }) => _request('/api/resume/surgical-edit', body: {
+    'original_text': originalText,
+    'instruction': instruction,
+  });
+
   static Future<List<int>> compileLatexPdf(String latexSource) async {
     final response = await http
         .post(

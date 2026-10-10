@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../../resume_data.dart';
+import '../../resume_preview_screen.dart';
+import '../../services/draft_storage.dart';
 
 class ResumeEditorPage extends StatefulWidget {
   const ResumeEditorPage({super.key});
@@ -114,24 +117,31 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
     _saveDraft();
   }
 
-  void _saveDraft() {
-    final draft = <String, Object?>{
-      'personal': {'name': _name.text.trim(), 'email': _email.text.trim(), 'phone': _phone.text.trim(), 'location': _location.text.trim(), 'github': _github.text.trim(), 'linkedin': _linkedin.text.trim()},
-      'education': _education.map((entry) => entry.toMap()).toList(),
-      'skills': [..._languages, ..._extraSkills],
-      'projects': _projects.map((entry) => entry.toMap()).toList(),
-      'experience': _experiences.map((entry) => entry.toMap()).toList(),
-      'certifications': _certifications.map((entry) => entry.toMap()).toList(),
-      'achievements': _achievements.map((entry) => entry.toMap()).toList(),
-    };
-    // Keep the complete resume data together as the app's current draft model.
-    _currentDraft = draft;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('All seven resume sections are complete.')));
+  Future<void> _saveDraft() async {
+    final resume = ResumeData(
+      name: _name.text.trim(), email: _email.text.trim(), phone: _phone.text.trim(),
+      location: _location.text.trim(), github: _github.text.trim(), linkedin: _linkedin.text.trim(),
+      skills: [..._languages, ..._extraSkills],
+      education: _education.where((e) => e.degree.text.trim().isNotEmpty || e.college.text.trim().isNotEmpty).map((e) => EducationData(
+        degree: e.degree.text.trim(), branch: e.branch.text.trim(), college: e.college.text.trim(),
+        startYear: e.startYear.text.trim(), endYear: e.endYear.text.trim(), cgpa: e.score.text.trim(),
+      )).toList(),
+      schoolName: _education.first.school.text.trim(), tenthPercentage: _education.first.schoolScore.text.trim(),
+      intermediateInstitution: _education.first.intermediate.text.trim(), intermediateMarks: _education.first.intermediateScore.text.trim(),
+      projects: _projects.map((e) => ProjectData(name: e.fields['name']?.text.trim() ?? '', description: e.fields['description']?.text.trim() ?? '', technologies: e.fields['technologies']?.text.trim() ?? '')).where((e) => e.name.isNotEmpty || e.description.isNotEmpty).toList(),
+      experiences: _experiences.map((e) => ExperienceData(jobTitle: e.fields['jobTitle']?.text.trim() ?? '', company: e.fields['company']?.text.trim() ?? '', employmentType: e.choice ?? '', startDate: e.fields['startDate']?.text.trim() ?? '', endDate: e.fields['endDate']?.text.trim() ?? '', currentlyWorking: e.ongoing, description: e.fields['description']?.text.trim() ?? '')).where((e) => e.jobTitle.isNotEmpty || e.company.isNotEmpty).toList(),
+      certifications: _certifications.map((e) => CertificationData(name: e.fields['name']?.text.trim() ?? '', organization: e.fields['organization']?.text.trim() ?? '', issueDate: e.fields['issueDate']?.text.trim() ?? '', credentialId: e.fields['credentialId']?.text.trim() ?? '', credentialUrl: e.fields['credentialUrl']?.text.trim() ?? '')).where((e) => e.name.isNotEmpty).toList(),
+      achievements: _achievements.map((e) => AchievementData(title: e.fields['title']?.text.trim() ?? '', date: e.fields['date']?.text.trim() ?? '', description: e.fields['description']?.text.trim() ?? '')).where((e) => e.title.isNotEmpty || e.description.isNotEmpty).toList(),
+    );
+    try {
+      await DraftStorage().save(resume);
+      if (!mounted) return;
+      await Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ResumePreviewScreen(resumeData: resume)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save resume: $error')));
+    }
   }
-
-  Map<String, Object?>? _currentDraft;
 
   @override
   Widget build(BuildContext context) => Scaffold(
