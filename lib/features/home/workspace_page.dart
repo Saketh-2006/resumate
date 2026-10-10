@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../chat/career_assistant_page.dart';
 import '../resume/resume_editor_page.dart';
-import '../resume/upload_resume_page.dart';
+import '../../upload_resume_screen.dart';
 import '../resume/my_resumes_page.dart';
 
 class WorkspacePage extends StatelessWidget {
@@ -19,7 +19,7 @@ class WorkspacePage extends StatelessWidget {
       const SizedBox(height: 13),
       _WorkspaceChoice(icon: Icons.folder_open_outlined, title: 'My resumes', subtitle: 'Open, review, and download resumes saved on this device.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyResumesPage()))),
       const SizedBox(height: 13),
-      _WorkspaceChoice(icon: Icons.file_upload_outlined, title: 'Upload a resume', subtitle: 'Bring an existing PDF or Word document to work on.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadResumePage()))),
+      _WorkspaceChoice(icon: Icons.file_upload_outlined, title: 'Upload a resume', subtitle: 'Bring an existing PDF resume and get suggestions.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadResumeScreen()))),
       const SizedBox(height: 13),
       _WorkspaceChoice(icon: Icons.forum_outlined, title: 'Chat with the career assistant', subtitle: 'Get practical help with resumes, interviews, and applications.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareerAssistantPage()))),
       const SizedBox(height: 26),
