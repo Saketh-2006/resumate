@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/paper_widgets.dart';
 
 class CareerAssistantPage extends StatefulWidget {
   const CareerAssistantPage({super.key});
@@ -150,7 +151,9 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     ..._messages.map(
-                      (m) => Align(
+                      (m) => FadeSlideIn(
+                        key: ObjectKey(m),
+                        child: Align(
                         alignment: m.$2
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
@@ -170,23 +173,23 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                           child: SelectableText(
                             m.$1,
                             style: TextStyle(
-                              color: m.$2 ? Colors.white : context.colors.ink,
+                              color: m.$2 ? context.colors.sheet : context.colors.ink,
                               height: 1.45,
                             ),
                           ),
                         ),
                       ),
+                      ),
                     ),
                     if (_loading)
-                      const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: WritingText(
+                          'writing…',
+                          key: ValueKey(_messages.length),
+                          size: 24,
+                          color: context.colors.muted,
+                          msPerChar: 140,
                         ),
                       ),
                   ],
@@ -218,7 +221,7 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                 icon: const Icon(Icons.arrow_upward_rounded),
                 style: IconButton.styleFrom(
                   backgroundColor: context.colors.accent,
-                  foregroundColor: Colors.white,
+                  foregroundColor: context.colors.sheet,
                   minimumSize: const Size(50, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

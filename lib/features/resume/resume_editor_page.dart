@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../../theme/paper_widgets.dart';
 import '../../resume_data.dart';
 import '../../resume_preview_screen.dart';
 import '../../services/draft_storage.dart';
@@ -154,20 +155,29 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(_pageTitles[_page],
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: context.colors.ink)),
-                const SizedBox(height: 5),
-                Text(_pageDescriptions[_page],
-                  style: TextStyle(color: context.colors.muted, height: 1.4)),
+                PageHeading(_pageTitles[_page], key: ValueKey(_page), subtitle: _pageDescriptions[_page], size: 34),
                 const SizedBox(height: 14),
                 Row(children: [
-                  Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: (_page + 1) / _pageTitles.length, minHeight: 6, backgroundColor: context.colors.line, color: context.colors.accent))),
+                  Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(4), child: TweenAnimationBuilder<double>(tween: Tween(end: (_page + 1) / _pageTitles.length), duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic, builder: (_, value, _) => LinearProgressIndicator(value: value, minHeight: 6, backgroundColor: context.colors.line, color: context.colors.accent)))),
                   const SizedBox(width: 10),
                   Text('Page ${_page + 1} of ${_pageTitles.length}', style: TextStyle(fontSize: 12, color: context.colors.muted)),
                 ]),
               ]),
             ),
-            Expanded(child: AnimatedSwitcher(duration: const Duration(milliseconds: 180), child: _pageContent())),
+            Expanded(child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 380),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              // Steps turn like pages: the new one slides in from the right.
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween(begin: const Offset(.08, 0), end: Offset.zero).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: KeyedSubtree(key: ValueKey(_page), child: _pageContent()),
+            )),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
               child: Row(children: [

@@ -5,6 +5,7 @@ import 'package:resumate_ai/api_service.dart';
 import 'package:resumate_ai/main.dart';
 import 'package:resumate_ai/resume_data.dart';
 import 'package:resumate_ai/resume_preview_screen.dart';
+import 'package:resumate_ai/theme/paper_widgets.dart';
 
 void main() {
   testWidgets('welcome page leads to the workspace', (tester) async {
@@ -12,6 +13,7 @@ void main() {
     await tester.tap(find.text('Start your resume'));
     await tester.pumpAndSettle();
     expect(find.text('Create a new resume'), findsOneWidget);
+    expect(find.byType(ThemeToggle), findsOneWidget);
     expect(find.text('Upload a resume'), findsOneWidget);
   });
 

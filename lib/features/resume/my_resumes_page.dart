@@ -4,6 +4,7 @@ import '../../resume_data.dart';
 import '../../resume_preview_screen.dart';
 import '../../services/draft_storage.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/paper_widgets.dart';
 
 class MyResumesPage extends StatefulWidget {
   const MyResumesPage({super.key});
@@ -52,15 +53,18 @@ class _MyResumesPageState extends State<MyResumesPage> {
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final resume = _resumes[index];
-                    return Card(
+                    return FadeSlideIn(
+                      delay: Duration(milliseconds: 60 * index.clamp(0, 8)),
+                      child: Card(
+                      color: context.colors.sheet,
                       child: ListTile(
                         leading: const CircleAvatar(child: Icon(Icons.description_outlined)),
-                        title: Text(resume.name.isEmpty ? 'Untitled resume' : resume.name),
+                        title: Text(resume.name.isEmpty ? 'Untitled resume' : resume.name, style: const TextStyle(fontFamily: AppFonts.hand, fontSize: 22, fontWeight: FontWeight.w700)),
                         subtitle: Text(resume.updatedAt.isEmpty ? 'Saved on this device' : 'Updated ${resume.updatedAt.substring(0, 10)}'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResumePreviewScreen(resumeData: resume))).then((_) => _refresh()),
                       ),
-                    );
+                    ));
                   },
                 ),
               ),

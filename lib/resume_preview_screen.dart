@@ -504,7 +504,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                                   children: resume.skills
                                       .map(
                                         (item) => Chip(
-                                          label: Text(item),
+                                          label: Text(item, style: const TextStyle(color: Color(0xFF29303C))),
                                           visualDensity: VisualDensity.compact,
                                           side: BorderSide.none,
                                           backgroundColor: _accent.withValues(alpha: .09),
@@ -772,13 +772,13 @@ class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
       padding: EdgeInsets.fromLTRB(20, 6, 20, MediaQuery.of(context).viewInsets.bottom + 20),
       child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [const Expanded(child: Text('Quick resume edit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))]),
-        const Text('Choose one section. Review the suggestion before applying it.', style: TextStyle(color: Colors.black54)),
+        Text('Choose one section. Review the suggestion before applying it.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 10),
         DropdownButtonFormField<String>(initialValue: _target, decoration: const InputDecoration(labelText: 'Section'), items: [for (final item in targets) DropdownMenuItem(value: item.$1, child: Text(item.$2, overflow: TextOverflow.ellipsis))], onChanged: (value) => setState(() { if (value != null) { _target = value; _suggestion = null; } })),
         const SizedBox(height: 9),
         if (_lastRequest != null) Padding(padding: const EdgeInsets.only(bottom: 7), child: Text('You: $_lastRequest', maxLines: 2, overflow: TextOverflow.ellipsis)),
         if (_suggestion != null) Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Current text', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600)),
+          Text('Current text', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
           Text(_textFor(_target)), const SizedBox(height: 8),
           const Text('Suggested edit', style: TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 5),
           Text(_suggestion!), const SizedBox(height: 10),

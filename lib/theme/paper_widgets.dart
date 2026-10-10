@@ -489,3 +489,34 @@ class _ScribblePainter extends CustomPainter {
   bool shouldRepaint(_ScribblePainter old) =>
       old.progress != progress || old.ink != ink || old.accent != accent;
 }
+
+/// Handwritten page title + ink underline + a subtitle that fades in.
+class PageHeading extends StatelessWidget {
+  const PageHeading(this.title, {super.key, this.subtitle, this.size = 36});
+  final String title;
+  final String? subtitle;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final writeMs = 45 * title.length + 200;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        WritingText(title, size: size),
+        const SizedBox(height: 2),
+        InkUnderline(width: 110, delay: Duration(milliseconds: writeMs - 150)),
+        if (subtitle != null) ...[
+          const SizedBox(height: 10),
+          FadeSlideIn(
+            delay: Duration(milliseconds: writeMs ~/ 2),
+            child: Text(
+              subtitle!,
+              style: TextStyle(color: context.colors.muted, height: 1.5),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
