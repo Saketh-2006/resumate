@@ -12,14 +12,7 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _messages = <(String, bool)>[];
-  String? _key;
   bool _loading = false;
-  @override
-  void initState() {
-    super.initState();
-    _loadKey();
-  }
-
   @override
   void dispose() {
     _input.dispose();
@@ -27,59 +20,9 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
     super.dispose();
   }
 
-  Future<void> _loadKey() async {
-    final key = await ApiService.loadKey();
-    if (mounted) setState(() => _key = key);
-  }
-
-  Future<void> _settings() async {
-    final controller = TextEditingController(text: _key);
-    final value = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Connect Groq'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Groq API key',
-            hintText: 'gsk_…',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save key'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (value == null) return;
-    if (value.isEmpty) {
-      await ApiService.saveKey(null);
-      if (mounted) setState(() => _key = null);
-      return;
-    }
-    if (!value.startsWith('gsk_')) {
-      _notice('That key does not look like a Groq API key.');
-      return;
-    }
-    await ApiService.saveKey(value);
-    if (mounted) setState(() => _key = value);
-  }
-
   Future<void> _send([String? suggested]) async {
     final text = (suggested ?? _input.text).trim();
     if (text.isEmpty || _loading) return;
-    if (_key == null) {
-      await _settings();
-      if (_key == null) return;
-    }
     _input.clear();
     setState(() {
       _messages.add((text, true));
@@ -125,28 +68,9 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
     }
   }
 
-  void _notice(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Career assistant'),
-      actions: [
-        IconButton(
-          tooltip: 'API key settings',
-          onPressed: _settings,
-          icon: Icon(
-            _key == null ? Icons.key_outlined : Icons.key,
-            color: AppColors.accent,
-          ),
-        ),
-        const SizedBox(width: 8),
-      ],
-    ),
+    appBar: AppBar(title: const Text('Career assistant')),
     body: Column(
       children: [
         Expanded(
@@ -167,15 +91,6 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
                       'Clear, useful help for the parts of a job search that take time.',
                       style: TextStyle(color: AppColors.muted, height: 1.45),
                     ),
-                    if (_key == null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 17),
-                        child: OutlinedButton.icon(
-                          onPressed: _settings,
-                          icon: const Icon(Icons.key_outlined),
-                          label: const Text('Connect your Groq key'),
-                        ),
-                      ),
                     const SizedBox(height: 22),
                     ...[
                       ('Resume feedback', 'Help me improve my resume summary.'),

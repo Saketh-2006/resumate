@@ -27,16 +27,18 @@ flutter pub get
 flutter run
 ```
 
-Get a free key at https://console.groq.com/keys, then open
-**Career assistant → key icon** in the app and paste it. The key is saved in
-the device's secure storage.
+The Groq key is compiled into the app from `.env`; users never enter it.
 
-For development you can bake a key in instead: create `secrets.json`
-(git-ignored) containing `{"GROQ_API_KEY": "gsk_..."}` and run
-`flutter run --dart-define-from-file=secrets.json`.
+```bash
+cp .env.example .env          # then put your key from console.groq.com/keys in it
+flutter run --dart-define-from-file=.env
+flutter build apk --dart-define-from-file=.env
+```
 
-> Anything compiled into an app can be extracted. That's fine for personal
-> builds; for a public release, put Groq behind a small proxy you control.
+Without the key the app still works; AI features say they aren't set up.
+
+> Anything compiled into an app can be extracted from the APK. Fine for
+> personal builds; for a public release, put Groq behind a small proxy.
 
 ## Test
 

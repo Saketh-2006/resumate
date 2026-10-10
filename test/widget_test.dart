@@ -15,7 +15,7 @@ void main() {
     expect(find.text('Upload a resume'), findsOneWidget);
   });
 
-  test('resume checklist works offline without a Groq key', () async {
+  test('resume checklist works offline without a Groq key in the build', () async {
     final result = await ApiService.analyzeResume(
       'Jane Doe jane@example.com\nEducation\nB.Tech\nSkills\nDart, Flutter',
     );
