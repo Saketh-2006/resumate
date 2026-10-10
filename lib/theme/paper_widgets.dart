@@ -76,20 +76,22 @@ class WritingText extends StatefulWidget {
 
 class _WritingTextState extends State<WritingText>
     with SingleTickerProviderStateMixin {
+  late final _write = Duration(
+    milliseconds: widget.msPerChar * widget.text.length + 200,
+  );
+  // The delay is the head of the animation, so no timers outlive the widget.
   late final _controller = AnimationController(
     vsync: this,
-    duration: Duration(
-      milliseconds: widget.msPerChar * widget.text.length + 200,
+    duration: widget.delay + _write,
+  )..forward();
+  late final _progress = CurvedAnimation(
+    parent: _controller,
+    curve: Interval(
+      widget.delay.inMilliseconds / (widget.delay + _write).inMilliseconds,
+      1,
+      curve: Curves.easeInOut,
     ),
   );
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
-  }
 
   @override
   void dispose() {
@@ -122,7 +124,7 @@ class _WritingTextState extends State<WritingText>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            var ink = Curves.easeInOut.transform(_controller.value) * total;
+            var ink = _progress.value * total;
             final rows = <Widget>[];
             for (var i = 0; i < lines.length; i++) {
               final shown = ink.clamp(0.0, widths[i]);
@@ -142,7 +144,7 @@ class _WritingTextState extends State<WritingText>
                     Positioned(
                       left: shown - 4,
                       bottom: widget.size * .12 +
-                          math.sin(_controller.value * 90) * 2,
+                          math.sin(_progress.value * 90) * 2,
                       child: _Pen(size: widget.size * .55),
                     ),
                 ],
@@ -271,15 +273,18 @@ class _Delayed extends StatefulWidget {
 }
 
 class _DelayedState extends State<_Delayed> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: widget.duration);
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
-  }
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: widget.delay + widget.duration,
+  )..forward();
+  late final _progress = CurvedAnimation(
+    parent: _controller,
+    curve: Interval(
+      widget.delay.inMilliseconds /
+          (widget.delay + widget.duration).inMilliseconds,
+      1,
+    ),
+  );
 
   @override
   void dispose() {
@@ -289,8 +294,8 @@ class _DelayedState extends State<_Delayed> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _controller,
-    builder: (_, _) => widget.builder(_controller.value),
+    animation: _progress,
+    builder: (_, _) => widget.builder(_progress.value),
   );
 }
 
