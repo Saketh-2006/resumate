@@ -348,7 +348,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     final resume = widget.resumeData;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resume preview'),
+        title: const Text('Preview'),
         actions: [
           IconButton(
             tooltip: 'Change template',
@@ -359,6 +359,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                   builder: (_) => TemplateScreen(resumeData: resume),
                 ),
               );
+              await DraftStorage().save(resume);
               if (mounted) setState(() {});
             },
             icon: const Icon(Icons.palette_outlined),
@@ -372,6 +373,13 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.bookmark_add_outlined),
+          ),
+          PopupMenuButton<VoidCallback>(
+            onSelected: (action) => action(),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: _saveLatexSource, child: const Text('Download .tex source')),
+              PopupMenuItem(value: () => _saveDraft(returnHome: true), child: const Text('Save and close')),
+            ],
           ),
         ],
       ),
@@ -573,56 +581,52 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
                 children: [
-                  OutlinedButton.icon(
+                  IconButton.outlined(
+                    tooltip: 'Edit details',
                     onPressed: _edit,
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit details'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _askAi,
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('Ask AI'),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<VoidCallback>(
+                    tooltip: 'AI help (needs internet)',
+                    enabled: !_polishing,
+                    onSelected: (action) => action(),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: _polishResume,
+                        child: const ListTile(leading: Icon(Icons.auto_awesome), title: Text('Polish whole resume')),
+                      ),
+                      PopupMenuItem(
+                        value: _openSurgicalEdit,
+                        child: const ListTile(leading: Icon(Icons.chat_bubble_outline), title: Text('Quick edit a section')),
+                      ),
+                      PopupMenuItem(
+                        value: _askAi,
+                        child: const ListTile(leading: Icon(Icons.forum_outlined), title: Text('Ask the assistant')),
+                      ),
+                    ],
+                    child: AbsorbPointer(
+                      child: OutlinedButton.icon(
+                        onPressed: () {},
+                        icon: _polishing
+                            ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.auto_awesome_outlined),
+                        label: Text(_polishing ? 'Writing…' : 'AI'),
+                      ),
+                    ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _openSurgicalEdit,
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Quick edit'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _polishing ? null : _polishResume,
-                    icon: _polishing
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_awesome),
-                    label: Text(_polishing ? 'Writing…' : 'AI polish resume'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _saveLatexSource,
-                    icon: const Icon(Icons.code),
-                    label: const Text('Download .tex'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _saving ? null : () => _saveDraft(returnHome: true),
-                    icon: const Icon(Icons.save_outlined),
-                    label: const Text('Save resume'),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _exporting ? null : _export,
-                    icon: _exporting
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.picture_as_pdf_outlined),
-                    label: Text(_exporting ? 'Preparing PDF…' : 'Export PDF'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _exporting ? null : _export,
+                      icon: _exporting
+                          ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(_exporting ? 'Preparing…' : 'Export PDF'),
+                    ),
                   ),
                 ],
               ),

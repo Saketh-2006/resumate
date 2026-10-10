@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:resumate_ai/api_service.dart';
 import 'package:resumate_ai/main.dart';
+import 'package:resumate_ai/resume_data.dart';
+import 'package:resumate_ai/resume_preview_screen.dart';
 
 void main() {
   testWidgets('welcome page leads to the workspace', (tester) async {
@@ -19,5 +21,15 @@ void main() {
     );
     expect(result['ai_enabled'], isFalse);
     expect(result['score'], 60); // contact, education, skills of 5 checks
+  });
+
+  testWidgets('preview AI button opens the AI menu', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: ResumePreviewScreen(resumeData: ResumeData(name: 'Test')),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('AI help (needs internet)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Polish whole resume'), findsOneWidget);
   });
 }
