@@ -54,12 +54,4 @@ class DraftStorage {
       drafts.map((item) => jsonEncode(item.toJson())).toList(),
     );
   }
-
-  Future<ResumeData> duplicate(ResumeData source) async {
-    final copy = ResumeData.fromJson(source.toJson())
-      ..id = DateTime.now().microsecondsSinceEpoch.toString()
-      ..updatedAt = DateTime.now().toIso8601String();
-    await save(copy);
-    return copy;
-  }
 }

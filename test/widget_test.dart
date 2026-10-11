@@ -1,30 +1,37 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:resumate_ai/api_service.dart';
 import 'package:resumate_ai/main.dart';
+import 'package:resumate_ai/resume_data.dart';
+import 'package:resumate_ai/resume_preview_screen.dart';
+import 'package:resumate_ai/theme/paper_widgets.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('welcome page leads to the workspace', (tester) async {
+    await tester.pumpWidget(const ResumateApp());
+    await tester.tap(find.text('Start your resume'));
+    await tester.pumpAndSettle();
+    expect(find.text('Create a new resume'), findsOneWidget);
+    expect(find.byType(ThemeToggle), findsOneWidget);
+    expect(find.text('Upload a resume'), findsOneWidget);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  test('resume checklist works offline without a Groq key in the build', () async {
+    final result = await ApiService.analyzeResume(
+      'Jane Doe jane@example.com\nEducation\nB.Tech\nSkills\nDart, Flutter',
+    );
+    expect(result['ai_enabled'], isFalse);
+    expect(result['score'], 60); // contact, education, skills of 5 checks
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('preview AI button opens the AI menu', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: ResumePreviewScreen(resumeData: ResumeData(name: 'Test')),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('AI help (needs internet)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Polish whole resume'), findsOneWidget);
   });
 }

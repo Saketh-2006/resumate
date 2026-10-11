@@ -79,7 +79,7 @@ class _UploadResumeScreenState extends State<UploadResumeScreen> {
                       style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 8),
                   const Text(
-                    'The PDF is read on this device. Extracted text is sent to your configured backend only when you start analysis.',
+                    'The PDF is read on this device. Only the extracted text is sent to Groq for wording suggestions, when you are online.',
                     textAlign: TextAlign.center,
                   ),
                   if (_fileName != null) ...[
@@ -124,7 +124,6 @@ class ResumeAnalysisScreen extends StatefulWidget {
 
 class _ResumeAnalysisScreenState extends State<ResumeAnalysisScreen> {
   Map<String, dynamic>? _analysis;
-  String? _error;
   bool _loading = false;
 
   @override
@@ -134,51 +133,13 @@ class _ResumeAnalysisScreenState extends State<ResumeAnalysisScreen> {
   }
 
   Future<void> _analyze() async {
+    setState(() => _loading = true);
+    final result = await ApiService.analyzeResume(widget.extractedText);
+    if (!mounted) return;
     setState(() {
-      _loading = true;
-      _error = null;
+      _analysis = result;
+      _loading = false;
     });
-    try {
-      final result = await ApiService.analyzeResume(widget.extractedText);
-      if (mounted) setState(() => _analysis = result);
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _analysis = _localChecklist(widget.extractedText);
-        _error = '$error';
-      });
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Map<String, dynamic> _localChecklist(String text) {
-    final lower = text.toLowerCase();
-    final categories = [
-      {'name': 'Contact', 'status': RegExp(r'\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b').hasMatch(text) ? 'present' : 'check'},
-      {'name': 'Education', 'status': lower.contains('education') ? 'present' : 'check'},
-      {'name': 'Skills', 'status': lower.contains('skills') ? 'present' : 'check'},
-      {'name': 'Projects', 'status': lower.contains('project') ? 'present' : 'check'},
-      {'name': 'Experience', 'status': lower.contains('experience') ? 'present' : 'check'},
-    ];
-    final suggestions = [
-      if (categories[0]['status'] == 'check') 'Add a clearly formatted email address to your contact details.',
-      if (categories[1]['status'] == 'check') 'Add an Education heading if it applies to you.',
-      if (categories[2]['status'] == 'check') 'Group your skills under a clearly labeled section.',
-      'Verify dates, links, and section order in the exported PDF.',
-    ];
-    return {
-      'score': (categories.where((item) => item['status'] == 'present').length /
-              categories.length *
-              100)
-          .round(),
-      'score_label': 'Content coverage indicator',
-      'disclaimer': 'This checklist is not a hiring prediction and does not guarantee ATS compatibility or employment.',
-      'categories': categories,
-      'suggestions': suggestions,
-      'changes': <Map<String, String>>[],
-      'ai_enabled': false,
-    };
   }
 
   Future<void> _reviewChanges() async {
@@ -216,19 +177,6 @@ class _ResumeAnalysisScreenState extends State<ResumeAnalysisScreen> {
                 Text(widget.fileName, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
                 if (_loading) const LinearProgressIndicator(),
-                if (_error != null)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.info_outline),
-                      title: const Text('Showing a local checklist'),
-                      subtitle: Text('Backend analysis unavailable. No AI edits were generated. $_error'),
-                      trailing: IconButton(
-                        tooltip: 'Retry',
-                        onPressed: _analyze,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ),
-                  ),
                 if (result != null) ...[
                   Card(
                     child: Padding(
@@ -299,11 +247,16 @@ class _ResumeAnalysisScreenState extends State<ResumeAnalysisScreen> {
                     ),
                   ),
                   if (result['ai_enabled'] != true)
-                    const Card(
+                    Card(
                       child: ListTile(
-                        leading: Icon(Icons.lock_outline),
-                        title: Text('AI suggestions are not configured'),
-                        subtitle: Text('Start the backend and your configured AI provider to generate wording suggestions.'),
+                        leading: const Icon(Icons.wifi_off_outlined),
+                        title: const Text('AI suggestions unavailable'),
+                        subtitle: const Text('Connect to the internet and add your Groq key to get wording suggestions. The checklist above works offline.'),
+                        trailing: IconButton(
+                          tooltip: 'Retry',
+                          onPressed: _loading ? null : _analyze,
+                          icon: const Icon(Icons.refresh),
+                        ),
                       ),
                     ),
                   FilledButton.icon(

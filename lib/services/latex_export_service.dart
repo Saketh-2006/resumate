@@ -18,19 +18,4 @@ class LatexExportService {
       allowedExtensions: const ['tex'],
     );
   }
-
-  static Future<void> savePdf(List<int> bytes, String resumeName) async {
-    final baseName = resumeName
-        .trim()
-        .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_')
-        .replaceAll(RegExp(r'^_+|_+$'), '');
-    await FilePicker.saveFile(
-      fileName: '${baseName.isEmpty ? 'Resume' : baseName}_Resume.pdf',
-      bytes: Uint8List.fromList(bytes),
-      mimeType: 'application/pdf',
-      dialogTitle: 'Save your LaTeX-generated PDF',
-      type: FileType.custom,
-      allowedExtensions: const ['pdf'],
-    );
-  }
 }

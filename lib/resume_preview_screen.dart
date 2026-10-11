@@ -1,10 +1,6 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
-import 'ai_assistant_screen.dart';
+import 'features/chat/career_assistant_page.dart';
 import 'api_service.dart';
 import 'edit_resume_screen.dart';
 import 'resume_data.dart';
@@ -13,6 +9,7 @@ import 'services/latex_export_service.dart';
 import 'services/latex_resume_service.dart';
 import 'services/pdf_export_service.dart';
 import 'resume_templates.dart';
+import 'template_screen.dart';
 
 class ResumePreviewScreen extends StatefulWidget {
   final ResumeData resumeData;
@@ -28,10 +25,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   bool _saving = false;
   bool _exporting = false;
   bool _polishing = false;
-  String? _latexSource;
-  Uint8List? _pdfBytes;
-  bool _compiling = false;
-  bool _showPdf = true;
   late final AnimationController _entrance = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1350),
@@ -51,32 +44,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   void dispose() {
     _entrance.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _latexSource = LatexResumeService.create(widget.resumeData);
-    _compilePreview();
-  }
-
-  Future<void> _compilePreview() async {
-    final source = _latexSource;
-    if (source == null) return;
-    setState(() => _compiling = true);
-    try {
-      final bytes = await ApiService.compileLatexPdf(source);
-      if (mounted) setState(() => _pdfBytes = Uint8List.fromList(bytes));
-    } catch (error) {
-      if (mounted) _showError('Could not compile the LaTeX PDF: $error');
-    } finally {
-      if (mounted) setState(() => _compiling = false);
-    }
-  }
-
-  Future<void> _refreshLatex() async {
-    _latexSource = LatexResumeService.create(widget.resumeData);
-    await _compilePreview();
   }
 
   Widget _animateBlock(Widget child, int order) {
@@ -102,8 +69,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   }
 
   Widget _buildHeader(ResumeData resume) {
-    final showPhoto = resume.profilePhotoData.isNotEmpty &&
-        _template.layout != 'ats';
     final name = resume.name.isEmpty ? 'Your Name' : resume.name;
     final contact = [resume.email, resume.phone, resume.location]
         .where((item) => item.isNotEmpty)
@@ -117,16 +82,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       fontWeight: FontWeight.w700,
       fontFamily: _template.layout == 'editorial' ? 'serif' : null,
     );
-    final photo = showPhoto
-        ? CircleAvatar(
-            radius: _template.layout == 'banner' ? 72 : 76,
-            backgroundColor: Colors.white,
-            child: CircleAvatar(
-              radius: _template.layout == 'banner' ? 68 : 72,
-              backgroundImage: MemoryImage(base64Decode(resume.profilePhotoData)),
-            ),
-          )
-        : null;
 
     if (_template.layout == 'banner') {
       return Container(
@@ -154,7 +109,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                 ],
               ),
             ),
-            if (photo != null) ...[const SizedBox(width: 14), photo],
           ],
         ),
       );
@@ -163,7 +117,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     if (_template.layout == 'centered') {
       return Column(
         children: [
-          if (photo != null) ...[photo, const SizedBox(height: 12)],
           Text(name, textAlign: TextAlign.center, style: titleStyle),
           if (contact.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -196,7 +149,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
             ],
           ),
         ),
-        if (photo != null) ...[const SizedBox(width: 16), photo],
       ],
     );
   }
@@ -220,20 +172,10 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   Future<void> _export() async {
     setState(() => _exporting = true);
     try {
-      if (_latexSource != null) {
-        final pdf = _pdfBytes ?? Uint8List.fromList(await ApiService.compileLatexPdf(_latexSource!));
-        await LatexExportService.savePdf(pdf, widget.resumeData.name);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('LaTeX PDF is ready to save.')),
-          );
-        }
-        return;
-      }
       final result = await PdfExportService.save(widget.resumeData);
       if (!mounted || result == null) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF is ready at your chosen location.')),
+        const SnackBar(content: Text('PDF saved.')),
       );
     } catch (error) {
       _showError('Could not export the PDF: $error');
@@ -248,7 +190,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       builder: (dialogContext) => AlertDialog(
         title: const Text('Send resume details for AI editing?'),
         content: const Text(
-          'This sends your resume fields—including your name, email, phone, location, education, and work history—to the ResuMate backend and its configured OpenAI model. Your profile photo is excluded. Your OpenAI account may incur usage charges. The AI will suggest clearer English without adding facts. Review every change before applying it.',
+          'This sends your resume fields—including your name, email, phone, location, education, and work history—to Groq (gpt-oss-120b). The AI will suggest clearer English without adding facts. Review every change before applying it.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
@@ -261,17 +203,11 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     setState(() => _polishing = true);
     try {
       final facts = widget.resumeData.toJson()
-        ..remove('profilePhotoData')
-        ..remove('profilePhotoPath')
         ..remove('id')
         ..remove('updatedAt');
       facts['templateColor'] = _accent.toARGB32();
       final response = await ApiService.generateResume(facts);
-      final polishedJson = response['resume_data'];
-      final source = response['latex_source'];
-      if (polishedJson is! Map<String, dynamic> || source is! String || source.isEmpty) {
-        throw const FormatException('The AI did not return a complete resume and LaTeX source.');
-      }
+      final polishedJson = response['resume_data'] as Map<String, dynamic>;
       final polished = ResumeData.fromJson(polishedJson);
       final review = StringBuffer('Review the suggested wording before applying it.\n\n');
       if (polished.summary.trim().isNotEmpty) {
@@ -324,11 +260,9 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       }
       await DraftStorage().save(current);
       if (!mounted) return;
-      setState(() => _latexSource = source);
-      await _compilePreview();
-      if (!mounted) return;
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reviewed AI wording applied. LaTeX source is ready to download.')),
+        const SnackBar(content: Text('Reviewed AI wording applied.')),
       );
     } catch (error) {
       _showError('AI resume writing is unavailable: $error');
@@ -338,8 +272,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   }
 
   Future<void> _saveLatexSource() async {
-    final source = _latexSource;
-    if (source == null) return;
+    final source = LatexResumeService.create(widget.resumeData);
     try {
       await LatexExportService.saveSource(source, widget.resumeData.name);
     } catch (error) {
@@ -356,7 +289,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     );
     if (mounted) {
       await DraftStorage().save(widget.resumeData);
-      await _refreshLatex();
       setState(() {});
     }
   }
@@ -370,7 +302,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
         resume: widget.resumeData,
         onApplied: () async {
           await DraftStorage().save(widget.resumeData);
-          await _refreshLatex();
           if (mounted) setState(() {});
         },
       ),
@@ -381,7 +312,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AiAssistantScreen(resumeData: widget.resumeData),
+        builder: (_) => CareerAssistantPage(resume: widget.resumeData),
       ),
     );
   }
@@ -398,15 +329,20 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     final resume = widget.resumeData;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resume preview'),
+        title: const Text('Preview'),
         actions: [
           IconButton(
             tooltip: 'Change template',
-            onPressed: () => Navigator.pushNamed(
-              context,
-              '/templates',
-              arguments: resume,
-            ),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TemplateScreen(resumeData: resume),
+                ),
+              );
+              await DraftStorage().save(resume);
+              if (mounted) setState(() {});
+            },
             icon: const Icon(Icons.palette_outlined),
           ),
           IconButton(
@@ -419,32 +355,19 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                   )
                 : const Icon(Icons.bookmark_add_outlined),
           ),
+          PopupMenuButton<VoidCallback>(
+            onSelected: (action) => action(),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: _saveLatexSource, child: const Text('Download .tex source')),
+              PopupMenuItem(value: () => _saveDraft(returnHome: true), child: const Text('Save and close')),
+            ],
+          ),
         ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, icon: Icon(Icons.article_outlined), label: Text('Resume layout')),
-                ButtonSegment(value: true, icon: Icon(Icons.picture_as_pdf_outlined), label: Text('Compiled PDF')),
-              ],
-              selected: {_showPdf},
-              onSelectionChanged: (selection) => setState(() => _showPdf = selection.first),
-            ),
-          ),
           Expanded(
-            child: _showPdf
-                ? _pdfBytes != null
-                    ? SfPdfViewer.memory(_pdfBytes!, key: ObjectKey(_pdfBytes!))
-                    : Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        if (_compiling) const CircularProgressIndicator(),
-                        const SizedBox(height: 12),
-                        Text(_compiling ? 'Compiling your LaTeX resume…' : 'The compiled PDF is unavailable. Check the backend connection.'),
-                        if (!_compiling) TextButton.icon(onPressed: _compilePreview, icon: const Icon(Icons.refresh), label: const Text('Try again')),
-                      ]))
-                : SingleChildScrollView(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Center(
                 child: ConstrainedBox(
@@ -562,7 +485,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                                   children: resume.skills
                                       .map(
                                         (item) => Chip(
-                                          label: Text(item),
+                                          label: Text(item, style: const TextStyle(color: Color(0xFF29303C))),
                                           visualDensity: VisualDensity.compact,
                                           side: BorderSide.none,
                                           backgroundColor: _accent.withValues(alpha: .09),
@@ -639,56 +562,52 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
                 children: [
-                  OutlinedButton.icon(
+                  IconButton.outlined(
+                    tooltip: 'Edit details',
                     onPressed: _edit,
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit details'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _askAi,
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('Ask AI'),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<VoidCallback>(
+                    tooltip: 'AI help (needs internet)',
+                    enabled: !_polishing,
+                    onSelected: (action) => action(),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: _polishResume,
+                        child: const ListTile(leading: Icon(Icons.auto_awesome), title: Text('Polish whole resume')),
+                      ),
+                      PopupMenuItem(
+                        value: _openSurgicalEdit,
+                        child: const ListTile(leading: Icon(Icons.chat_bubble_outline), title: Text('Quick edit a section')),
+                      ),
+                      PopupMenuItem(
+                        value: _askAi,
+                        child: const ListTile(leading: Icon(Icons.forum_outlined), title: Text('Ask the assistant')),
+                      ),
+                    ],
+                    child: AbsorbPointer(
+                      child: OutlinedButton.icon(
+                        onPressed: () {},
+                        icon: _polishing
+                            ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.auto_awesome_outlined),
+                        label: Text(_polishing ? 'Writing…' : 'AI'),
+                      ),
+                    ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _openSurgicalEdit,
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Quick edit'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _polishing ? null : _polishResume,
-                    icon: _polishing
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_awesome),
-                    label: Text(_polishing ? 'Writing…' : 'AI polish resume'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _saveLatexSource,
-                    icon: const Icon(Icons.code),
-                    label: const Text('Download .tex'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _saving ? null : () => _saveDraft(returnHome: true),
-                    icon: const Icon(Icons.save_outlined),
-                    label: const Text('Save resume'),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _exporting ? null : _export,
-                    icon: _exporting
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.picture_as_pdf_outlined),
-                    label: Text(_exporting ? 'Preparing PDF…' : 'Export PDF'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _exporting ? null : _export,
+                      icon: _exporting
+                          ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(_exporting ? 'Preparing…' : 'Export PDF'),
+                    ),
                   ),
                 ],
               ),
@@ -834,13 +753,13 @@ class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
       padding: EdgeInsets.fromLTRB(20, 6, 20, MediaQuery.of(context).viewInsets.bottom + 20),
       child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [const Expanded(child: Text('Quick resume edit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))]),
-        const Text('Choose one section. Review the suggestion before applying it.', style: TextStyle(color: Colors.black54)),
+        Text('Choose one section. Review the suggestion before applying it.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 10),
         DropdownButtonFormField<String>(initialValue: _target, decoration: const InputDecoration(labelText: 'Section'), items: [for (final item in targets) DropdownMenuItem(value: item.$1, child: Text(item.$2, overflow: TextOverflow.ellipsis))], onChanged: (value) => setState(() { if (value != null) { _target = value; _suggestion = null; } })),
         const SizedBox(height: 9),
         if (_lastRequest != null) Padding(padding: const EdgeInsets.only(bottom: 7), child: Text('You: $_lastRequest', maxLines: 2, overflow: TextOverflow.ellipsis)),
         if (_suggestion != null) Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Current text', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600)),
+          Text('Current text', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
           Text(_textFor(_target)), const SizedBox(height: 8),
           const Text('Suggested edit', style: TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 5),
           Text(_suggestion!), const SizedBox(height: 10),

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -87,15 +86,6 @@ class PdfExportService {
       return result;
     }
 
-    final includePhoto =
-        resume.profilePhotoData.isNotEmpty && template.layout != 'ats';
-    if (includePhoto) {
-      final image = PdfBitmap(base64Decode(resume.profilePhotoData));
-      page.graphics.drawImage(
-        image,
-        Rect.fromLTWH(width - 104, template.layout == 'banner' ? 10 : 0, 104, 104),
-      );
-    }
     final nameColor = template.layout == 'banner'
         ? PdfColor(255, 255, 255)
         : accent;
@@ -105,7 +95,6 @@ class PdfExportService {
       bold: true,
       color: nameColor,
       gap: 5,
-      textWidth: includePhoto ? width - 120 - leftInset : null,
       alignment: template.layout == 'centered'
           ? PdfTextAlignment.center
           : PdfTextAlignment.left,
@@ -124,14 +113,12 @@ class PdfExportService {
         size: 9,
         gap: 14,
         color: template.layout == 'banner' ? PdfColor(255, 255, 255) : null,
-        textWidth: includePhoto ? width - 120 - leftInset : null,
-        alignment: template.layout == 'centered'
+          alignment: template.layout == 'centered'
             ? PdfTextAlignment.center
             : PdfTextAlignment.left,
       );
     }
     if (template.layout == 'banner' && y < 112) y = 112;
-    if (includePhoto && y < 92) y = 92;
 
     void heading(String title) {
       write(title.toUpperCase(), size: 11, bold: true, color: accent, gap: 4);
