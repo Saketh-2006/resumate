@@ -52,3 +52,4 @@ Thumbs.db
 
 # Local testing credentials
 /secrets.json
+backend/.dev.vars

@@ -1,29 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Talks to Groq (`openai/gpt-oss-120b`) straight from the device. Everything
 /// else in the app works offline; only these AI calls need internet.
 class ApiService {
-  static const _endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-  static const _model = 'openai/gpt-oss-120b';
-  // Compiled in from .env: flutter run --dart-define-from-file=.env
-  static const _buildApiKey = String.fromEnvironment('GROQ_API_KEY');
-  static const _secureStorage = FlutterSecureStorage();
+  // This URL is public configuration, not a secret. The backend holds the
+  // single Groq key and authenticates every provider request itself.
+  static const _backendUrl = String.fromEnvironment('AI_BACKEND_URL');
+  static const _endpointPath = '/v1/chat/completions';
 
-  static Future<String> _readApiKey() async {
-    final saved = await _secureStorage.read(key: 'groq_api_key');
-    return saved?.trim().isNotEmpty == true
-        ? saved!.trim()
-        : _buildApiKey.trim();
+  static Future<String> _installationId() async {
+    final preferences = await SharedPreferences.getInstance();
+    final existing = preferences.getString('resumate.ai.installationId');
+    if (existing != null && RegExp(r'^[A-Za-z0-9_-]{32}$').hasMatch(existing)) {
+      return existing;
+    }
+    final random = Random.secure();
+    final id = base64UrlEncode(List<int>.generate(24, (_) => random.nextInt(256)))
+        .replaceAll('=', '');
+    await preferences.setString('resumate.ai.installationId', id);
+    return id;
   }
-
-  static Future<void> saveApiKey(String key) =>
-      _secureStorage.write(key: 'groq_api_key', value: key.trim());
-
-  static Future<bool> hasApiKey() async => (await _readApiKey()).isNotEmpty;
 
   static const factualityRule =
       'You are a professional resume writing assistant. Use ONLY information supplied '
@@ -40,19 +41,22 @@ class ApiService {
     int maxTokens = 1500,
     double temperature = 0.3,
   }) async {
-    final apiKey = await _readApiKey();
-    if (apiKey.isEmpty) throw Exception('Groq API key is not configured.');
+    final baseUrl = _backendUrl.trim().replaceFirst(RegExp(r'/+$'), '');
+    if (baseUrl.isEmpty) {
+      throw Exception(
+        'AI service is not configured in this APK. Contact the app administrator.',
+      );
+    }
     final http.Response response;
     try {
       response = await http
           .post(
-            Uri.parse(_endpoint),
+            Uri.parse('$baseUrl$_endpointPath'),
             headers: {
-              'Authorization': 'Bearer $apiKey',
               'Content-Type': 'application/json',
+              'X-Resumate-Client-ID': await _installationId(),
             },
             body: jsonEncode({
-              'model': _model,
               'messages': messages,
               'temperature': temperature,
               'max_completion_tokens': maxTokens,

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import 'api_service.dart';
 import 'edit_resume_screen.dart';
-import 'features/chat/groq_key_setup.dart';
 import 'resume_data.dart';
 import 'services/draft_storage.dart';
 import 'services/latex_export_service.dart';
@@ -230,7 +229,6 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   }
 
   Future<void> _polishResume() async {
-    if (!await requestGroqKey(context) || !mounted) return;
     final consent = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -838,7 +836,6 @@ class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
   Future<void> _send() async {
     final instruction = _instruction.text.trim();
     if (instruction.isEmpty || _targets.isEmpty) return;
-    if (!await requestGroqKey(context) || !mounted) return;
     setState(() {
       _sending = true;
       _suggestion = null;

@@ -1,0 +1,15 @@
+name = "resumate-ai-api"
+main = "worker.js"
+compatibility_date = "2026-10-11"
+workers_dev = true
+
+[secrets]
+required = ["GROQ_API_KEY"]
+
+[[ratelimits]]
+name = "AI_RATE_LIMITER"
+namespace_id = "420261011"
+
+[ratelimits.simple]
+limit = 30
+period = 60

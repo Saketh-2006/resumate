@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'assistant_markdown.dart';
 import '../../api_service.dart';
-import 'groq_key_setup.dart';
 import '../../resume_data.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/paper_widgets.dart';
@@ -53,16 +52,6 @@ class _CareerAssistantPageState extends State<CareerAssistantPage> {
   Future<void> _send([String? suggested]) async {
     final text = (suggested ?? _input.text).trim();
     if (text.isEmpty || _loading) return;
-    try {
-      if (!await requestGroqKey(context) || !mounted) return;
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not set up AI access: $error')),
-        );
-      }
-      return;
-    }
     _input.clear();
     setState(() {
       _messages.add((text, true));
