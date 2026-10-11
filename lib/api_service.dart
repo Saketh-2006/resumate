@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const _endpoint = 'https://api.groq.com/openai/v1/chat/completions';
   static const _model = 'openai/gpt-oss-120b';
-  // Baked into the APK at build time from .env (see build_apk.sh), so a
+  // Baked into the APK at build time from .env (see build_apk.bat), so a
   // shared APK works on any phone with no setup.
   static const _apiKey = String.fromEnvironment('GROQ_API_KEY');
 
@@ -29,7 +29,7 @@ class ApiService {
   }) async {
     if (_apiKey.isEmpty) {
       throw Exception(
-        'This build has no Groq key. Build the APK with ./build_apk.sh.',
+        'This build has no Groq key. Build the APK with build_apk.bat.',
       );
     }
     final http.Response response;
