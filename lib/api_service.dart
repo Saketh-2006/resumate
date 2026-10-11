@@ -1,30 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Talks to Groq (`openai/gpt-oss-120b`) straight from the device. Everything
 /// else in the app works offline; only these AI calls need internet.
 class ApiService {
-  // This URL is public configuration, not a secret. The backend holds the
-  // single Groq key and authenticates every provider request itself.
-  static const _backendUrl = String.fromEnvironment('AI_BACKEND_URL');
-  static const _endpointPath = '/v1/chat/completions';
-
-  static Future<String> _installationId() async {
-    final preferences = await SharedPreferences.getInstance();
-    final existing = preferences.getString('resumate.ai.installationId');
-    if (existing != null && RegExp(r'^[A-Za-z0-9_-]{32}$').hasMatch(existing)) {
-      return existing;
-    }
-    final random = Random.secure();
-    final id = base64UrlEncode(List<int>.generate(24, (_) => random.nextInt(256)))
-        .replaceAll('=', '');
-    await preferences.setString('resumate.ai.installationId', id);
-    return id;
-  }
+  static const _endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+  static const _model = 'openai/gpt-oss-120b';
+  // Baked into the APK at build time from .env (see build_apk.sh), so a
+  // shared APK works on any phone with no setup.
+  static const _apiKey = String.fromEnvironment('GROQ_API_KEY');
 
   static const factualityRule =
       'You are a professional resume writing assistant. Use ONLY information supplied '
@@ -41,22 +27,22 @@ class ApiService {
     int maxTokens = 1500,
     double temperature = 0.3,
   }) async {
-    final baseUrl = _backendUrl.trim().replaceFirst(RegExp(r'/+$'), '');
-    if (baseUrl.isEmpty) {
+    if (_apiKey.isEmpty) {
       throw Exception(
-        'AI service is not configured in this APK. Contact the app administrator.',
+        'This build has no Groq key. Build the APK with ./build_apk.sh.',
       );
     }
     final http.Response response;
     try {
       response = await http
           .post(
-            Uri.parse('$baseUrl$_endpointPath'),
+            Uri.parse(_endpoint),
             headers: {
+              'Authorization': 'Bearer $_apiKey',
               'Content-Type': 'application/json',
-              'X-Resumate-Client-ID': await _installationId(),
             },
             body: jsonEncode({
+              'model': _model,
               'messages': messages,
               'temperature': temperature,
               'max_completion_tokens': maxTokens,
