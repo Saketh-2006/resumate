@@ -5,6 +5,7 @@ import '../../theme/paper_widgets.dart';
 import '../../resume_data.dart';
 import '../../resume_preview_screen.dart';
 import '../../services/draft_storage.dart';
+import 'profile_photo_picker.dart';
 
 class ResumeEditorPage extends StatefulWidget {
   const ResumeEditorPage({super.key});
@@ -27,6 +28,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
   final List<_EducationEntry> _education = [_EducationEntry()];
   final Set<String> _languages = {};
   final List<String> _extraSkills = [];
+  String _photoPath = '';
   final _skillInput = TextEditingController();
   final List<_ResumeEntry> _projects = [];
   final List<_ResumeEntry> _experiences = [];
@@ -193,6 +195,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
     final resume = ResumeData(
       name: _name.text.trim(), email: _email.text.trim(), phone: _phone.text.trim(),
       location: _location.text.trim(), github: _github.text.trim(), linkedin: _linkedin.text.trim(),
+      photoPath: _photoPath,
       skills: [..._languages, ..._extraSkills],
       education: _education.where((e) => e.degree.text.trim().isNotEmpty || e.college.text.trim().isNotEmpty).map((e) => EducationData(
         degree: e.degree.text.trim(), branch: e.branch.text.trim(), college: e.college.text.trim(),
@@ -285,6 +288,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
     child: ListView(key: const ValueKey('personal'), padding: const EdgeInsets.fromLTRB(22, 8, 22, 20), children: [
       const _SectionHeading(icon: Icons.person_outline, title: 'Contact details'),
       const SizedBox(height: 15),
+      ProfilePhotoPicker(value: _photoPath, onChanged: (path) => setState(() => _photoPath = path)),
       _input(_name, 'Full name', required: true, hint: 'Jordan Lee', capitalization: TextCapitalization.words),
       _input(_email, 'Email', required: true, hint: 'jordan@example.com', type: TextInputType.emailAddress,
         validator: (value) { if (value == null || value.trim().isEmpty) return 'Email is required'; if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) return 'Enter a valid email address'; return null; }),
@@ -339,6 +343,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
         initialValue: null,
         decoration: const InputDecoration(labelText: 'Add a programming language', prefixIcon: Icon(Icons.search)),
         items: _languagesList.map((language) => DropdownMenuItem(value: language, child: Text(language))).toList(),
+        style: TextStyle(color: context.colors.ink),
         onChanged: (language) {
           if (language == null) return;
           setState(() { _languages.add(language); _languageDropdownKey++; });
@@ -346,7 +351,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
       ),
       const SizedBox(height: 10),
       if (_languages.isNotEmpty) Wrap(spacing: 8, runSpacing: 5, children: [
-        for (final language in _languages) InputChip(label: Text(language), onDeleted: () => setState(() => _languages.remove(language))),
+        for (final language in _languages) InputChip(label: Text(language, style: TextStyle(color: context.colors.ink)), backgroundColor: context.colors.sheet, side: BorderSide(color: context.colors.line), deleteIconColor: context.colors.muted, onDeleted: () => setState(() => _languages.remove(language))),
       ]) else Text('Your selected languages will appear here.', style: TextStyle(fontSize: 12, color: context.colors.muted)),
       const SizedBox(height: 24),
       const _SectionHeading(icon: Icons.auto_awesome_outlined, title: 'Other skills'),
@@ -355,7 +360,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
       const SizedBox(height: 12),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: TextField(controller: _skillInput, textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Add a skill', hintText: 'e.g. Figma, teamwork'),
+          style: TextStyle(color: context.colors.ink), decoration: const InputDecoration(labelText: 'Add a skill', hintText: 'e.g. Figma, teamwork'),
           onSubmitted: (_) => _addSkill())),
         const SizedBox(width: 8),
         Padding(padding: const EdgeInsets.only(top: 4), child: IconButton.filled(onPressed: _addSkill, tooltip: 'Add skill', icon: const Icon(Icons.add))),
@@ -363,7 +368,7 @@ class _ResumeEditorPageState extends State<ResumeEditorPage> {
       if (_extraSkills.isNotEmpty) ...[
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 5, children: [
-          for (final skill in _extraSkills) InputChip(label: Text(skill), onDeleted: () => setState(() => _extraSkills.remove(skill))),
+          for (final skill in _extraSkills) InputChip(label: Text(skill, style: TextStyle(color: context.colors.ink)), backgroundColor: context.colors.sheet, side: BorderSide(color: context.colors.line), deleteIconColor: context.colors.muted, onDeleted: () => setState(() => _extraSkills.remove(skill))),
         ]),
       ],
     ],

@@ -9,6 +9,7 @@ class ResumeData {
   String linkedin;
   String github;
   String portfolio;
+  String photoPath;
   String schoolName;
   String tenthPercentage;
   String intermediateInstitution;
@@ -34,6 +35,7 @@ class ResumeData {
     this.linkedin = '',
     this.github = '',
     this.portfolio = '',
+    this.photoPath = '',
     this.schoolName = '',
     this.tenthPercentage = '',
     this.intermediateInstitution = '',
@@ -65,6 +67,7 @@ class ResumeData {
         'linkedin': linkedin,
         'github': github,
         'portfolio': portfolio,
+        'photoPath': photoPath,
         'schoolName': schoolName,
         'tenthPercentage': tenthPercentage,
         'intermediateInstitution': intermediateInstitution,
@@ -92,6 +95,7 @@ class ResumeData {
         linkedin: _string(json['linkedin']),
         github: _string(json['github']),
         portfolio: _string(json['portfolio']),
+        photoPath: _string(json['photoPath']),
         schoolName: _string(json['schoolName']),
         tenthPercentage: _string(json['tenthPercentage']),
         intermediateInstitution: _string(json['intermediateInstitution']),

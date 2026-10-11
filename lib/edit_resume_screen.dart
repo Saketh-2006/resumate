@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'resume_data.dart';
 import 'services/draft_storage.dart';
+import 'features/resume/profile_photo_picker.dart';
 
 class EditResumeScreen extends StatefulWidget {
   final ResumeData resumeData;
@@ -514,6 +515,7 @@ class _EditResumeScreenState extends State<EditResumeScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   _section('Personal information', [
+                    ProfilePhotoPicker(value: resume.photoPath, onChanged: (path) => setState(() => resume.photoPath = path)),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(resume.name.isEmpty ? 'Add your name' : resume.name),
@@ -567,6 +569,10 @@ class _EditResumeScreenState extends State<EditResumeScreen> {
                         for (final skill in resume.skills)
                           InputChip(
                             label: Text(skill),
+                            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                            labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                            deleteIconColor: Theme.of(context).colorScheme.onSurfaceVariant,
                             onDeleted: () => setState(() => resume.skills.remove(skill)),
                           ),
                       ],

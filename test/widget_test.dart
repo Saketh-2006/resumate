@@ -33,5 +33,19 @@ void main() {
     await tester.tap(find.byTooltip('AI help (needs internet)'));
     await tester.pumpAndSettle();
     expect(find.text('Polish whole resume'), findsOneWidget);
+    expect(find.text('Quick edit a section'), findsOneWidget);
+    expect(find.text('Ask the assistant'), findsNothing);
+  });
+
+  testWidgets('resume skill chips stay readable across theme changes', (tester) async {
+    final resume = ResumeData(name: 'Test', skills: ['Flutter', 'Accessible design']);
+    await tester.pumpWidget(MaterialApp(theme: ThemeData.dark(), home: ResumePreviewScreen(resumeData: resume)));
+    await tester.pumpAndSettle();
+    expect(find.text('Flutter'), findsOneWidget);
+    expect(find.text('Accessible design'), findsOneWidget);
+    await tester.pumpWidget(MaterialApp(theme: ThemeData.light(), home: ResumePreviewScreen(resumeData: resume)));
+    await tester.pumpAndSettle();
+    expect(find.text('Flutter'), findsOneWidget);
+    expect(resume.skills, ['Flutter', 'Accessible design']);
   });
 }

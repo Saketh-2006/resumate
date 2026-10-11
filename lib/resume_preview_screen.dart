@@ -1,8 +1,10 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
-import 'features/chat/career_assistant_page.dart';
 import 'api_service.dart';
 import 'edit_resume_screen.dart';
+import 'features/chat/groq_key_setup.dart';
 import 'resume_data.dart';
 import 'services/draft_storage.dart';
 import 'services/latex_export_service.dart';
@@ -31,13 +33,12 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   )..forward();
 
   ResumeTemplateOption get _template => resumeTemplates.firstWhere(
-        (item) => item.id == widget.resumeData.templateId,
-        orElse: () => resumeTemplates.first,
-      );
+    (item) => item.id == widget.resumeData.templateId,
+    orElse: () => resumeTemplates.first,
+  );
 
-  Color get _accent => Color(
-        widget.resumeData.customAccentColor ?? _template.color.toARGB32(),
-      );
+  Color get _accent =>
+      Color(widget.resumeData.customAccentColor ?? _template.color.toARGB32());
   double get _fontScale => widget.resumeData.fontScale;
 
   @override
@@ -70,12 +71,16 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
 
   Widget _buildHeader(ResumeData resume) {
     final name = resume.name.isEmpty ? 'Your Name' : resume.name;
-    final contact = [resume.email, resume.phone, resume.location]
-        .where((item) => item.isNotEmpty)
-        .join('  •  ');
-    final links = [resume.linkedin, resume.github, resume.portfolio]
-        .where((item) => item.isNotEmpty)
-        .join('  •  ');
+    final contact = [
+      resume.email,
+      resume.phone,
+      resume.location,
+    ].where((item) => item.isNotEmpty).join('  •  ');
+    final links = [
+      resume.linkedin,
+      resume.github,
+      resume.portfolio,
+    ].where((item) => item.isNotEmpty).join('  •  ');
     final titleStyle = TextStyle(
       color: _accent,
       fontSize: (_template.layout == 'editorial' ? 31 : 27) * _fontScale,
@@ -83,6 +88,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       fontFamily: _template.layout == 'editorial' ? 'serif' : null,
     );
 
+    final photo = _profilePhoto(resume.photoPath, 68);
     if (_template.layout == 'banner') {
       return Container(
         width: double.infinity,
@@ -93,6 +99,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
         ),
         child: Row(
           children: [
+            if (photo != null) ...[photo, const SizedBox(width: 14)],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,11 +107,20 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                   Text(name, style: titleStyle.copyWith(color: Colors.white)),
                   if (contact.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(contact, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    Text(
+                      contact,
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                    ),
                   ],
                   if (links.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(links, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                    Text(
+                      links,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -117,14 +133,23 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     if (_template.layout == 'centered') {
       return Column(
         children: [
+          if (photo != null) ...[photo, const SizedBox(height: 10)],
           Text(name, textAlign: TextAlign.center, style: titleStyle),
           if (contact.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(contact, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11)),
+            Text(
+              contact,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11),
+            ),
           ],
           if (links.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(links, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: _accent)),
+            Text(
+              links,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 10, color: _accent),
+            ),
           ],
           const SizedBox(height: 10),
           Container(height: 2, color: _accent.withValues(alpha: .65)),
@@ -141,7 +166,8 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
             children: [
               Text(name, style: titleStyle),
               const SizedBox(height: 8),
-              if (contact.isNotEmpty) Text(contact, style: const TextStyle(fontSize: 11)),
+              if (contact.isNotEmpty)
+                Text(contact, style: const TextStyle(fontSize: 11)),
               if (links.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(links, style: TextStyle(fontSize: 10, color: _accent)),
@@ -149,7 +175,26 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
             ],
           ),
         ),
+        if (photo != null) ...[const SizedBox(width: 12), photo],
       ],
+    );
+  }
+
+  Widget? _profilePhoto(String path, double size) {
+    if (path.isEmpty) return null;
+    final file = File(path);
+    if (!file.existsSync()) return null;
+    return ClipOval(
+      child: Image.file(
+        file,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => CircleAvatar(
+          radius: size / 2,
+          child: const Icon(Icons.person_outline),
+        ),
+      ),
     );
   }
 
@@ -174,9 +219,9 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     try {
       final result = await PdfExportService.save(widget.resumeData);
       if (!mounted || result == null) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('PDF saved.')));
     } catch (error) {
       _showError('Could not export the PDF: $error');
     } finally {
@@ -185,6 +230,7 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   }
 
   Future<void> _polishResume() async {
+    if (!await requestGroqKey(context) || !mounted) return;
     final consent = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -193,8 +239,14 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
           'This sends your resume fields—including your name, email, phone, location, education, and work history—to Groq (gpt-oss-120b). The AI will suggest clearer English without adding facts. Review every change before applying it.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Continue and send')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Continue and send'),
+          ),
         ],
       ),
     );
@@ -209,14 +261,18 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
       final response = await ApiService.generateResume(facts);
       final polishedJson = response['resume_data'] as Map<String, dynamic>;
       final polished = ResumeData.fromJson(polishedJson);
-      final review = StringBuffer('Review the suggested wording before applying it.\n\n');
+      final review = StringBuffer(
+        'Review the suggested wording before applying it.\n\n',
+      );
       if (polished.summary.trim().isNotEmpty) {
         review.writeln('PROFILE\n${polished.summary}\n');
       }
       for (var i = 0; i < polished.experiences.length; i++) {
         final item = polished.experiences[i];
         if (item.description.trim().isNotEmpty) {
-          review.writeln('EXPERIENCE · ${item.jobTitle}\n${item.description}\n');
+          review.writeln(
+            'EXPERIENCE · ${item.jobTitle}\n${item.description}\n',
+          );
         }
       }
       for (var i = 0; i < polished.projects.length; i++) {
@@ -238,31 +294,41 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
           content: SizedBox(
             width: 620,
             height: 440,
-            child: SingleChildScrollView(child: SelectableText(review.toString())),
+            child: SingleChildScrollView(
+              child: SelectableText(review.toString()),
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Discard suggestions')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Apply reviewed wording')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Discard suggestions'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Apply reviewed wording'),
+            ),
           ],
         ),
       );
       if (accepted != true || !mounted) return;
-      final current = widget.resumeData;
-      current.summary = polished.summary;
-      for (var i = 0; i < current.experiences.length && i < polished.experiences.length; i++) {
-        current.experiences[i].description = polished.experiences[i].description;
-      }
-      for (var i = 0; i < current.projects.length && i < polished.projects.length; i++) {
-        current.projects[i].description = polished.projects[i].description;
-      }
-      for (var i = 0; i < current.achievements.length && i < polished.achievements.length; i++) {
-        current.achievements[i].description = polished.achievements[i].description;
-      }
-      await DraftStorage().save(current);
+      // Save the accepted wording as a separate draft; leave the source untouched.
+      polished.id = '';
+      polished.updatedAt = '';
+      await DraftStorage().save(polished);
       if (!mounted) return;
-      setState(() {});
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ResumePreviewScreen(resumeData: polished),
+        ),
+      );
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reviewed AI wording applied.')),
+        const SnackBar(
+          content: Text(
+            'Polished copy saved. Your original resume is unchanged.',
+          ),
+        ),
       );
     } catch (error) {
       _showError('AI resume writing is unavailable: $error');
@@ -308,20 +374,11 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
     );
   }
 
-  void _askAi() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CareerAssistantPage(resume: widget.resumeData),
-      ),
-    );
-  }
-
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -358,8 +415,14 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
           PopupMenuButton<VoidCallback>(
             onSelected: (action) => action(),
             itemBuilder: (_) => [
-              PopupMenuItem(value: _saveLatexSource, child: const Text('Download .tex source')),
-              PopupMenuItem(value: () => _saveDraft(returnHome: true), child: const Text('Save and close')),
+              PopupMenuItem(
+                value: _saveLatexSource,
+                child: const Text('Download .tex source'),
+              ),
+              PopupMenuItem(
+                value: () => _saveDraft(returnHome: true),
+                child: const Text('Save and close'),
+              ),
             ],
           ),
         ],
@@ -382,17 +445,23 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                       ),
                       border: switch (_template.layout) {
                         'sidebar' => Border(
-                            left: BorderSide(color: _accent, width: 8),
-                            top: BorderSide(color: _accent.withValues(alpha: .3)),
-                            right: const BorderSide(color: Color(0xFFE4E7EC)),
-                            bottom: const BorderSide(color: Color(0xFFE4E7EC)),
-                          ),
+                          left: BorderSide(color: _accent, width: 8),
+                          top: BorderSide(color: _accent.withValues(alpha: .3)),
+                          right: const BorderSide(color: Color(0xFFE4E7EC)),
+                          bottom: const BorderSide(color: Color(0xFFE4E7EC)),
+                        ),
                         'split' => Border(
-                            top: BorderSide(color: _accent, width: 5),
-                            left: BorderSide(color: _accent.withValues(alpha: .35)),
-                            right: BorderSide(color: _accent.withValues(alpha: .35)),
-                            bottom: BorderSide(color: _accent.withValues(alpha: .35)),
+                          top: BorderSide(color: _accent, width: 5),
+                          left: BorderSide(
+                            color: _accent.withValues(alpha: .35),
                           ),
+                          right: BorderSide(
+                            color: _accent.withValues(alpha: .35),
+                          ),
+                          bottom: BorderSide(
+                            color: _accent.withValues(alpha: .35),
+                          ),
+                        ),
                         _ => Border.all(color: const Color(0xFFE4E7EC)),
                       },
                       boxShadow: _template.layout == 'ats'
@@ -408,7 +477,9 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                     child: DefaultTextStyle(
                       style: TextStyle(
                         color: const Color(0xFF29303C),
-                        fontFamily: _template.layout == 'editorial' ? 'serif' : null,
+                        fontFamily: _template.layout == 'editorial'
+                            ? 'serif'
+                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,44 +487,39 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                           _animateBlock(_buildHeader(resume), 0),
                           const SizedBox(height: 24),
                           if (resume.summary.trim().isNotEmpty)
-                            _section(
-                              'Profile',
-                              [_entry('', [resume.summary])],
-                              order: 1,
-                            ),
+                            _section('Profile', [
+                              _entry('', [resume.summary]),
+                            ], order: 1),
                           if (resume.education.isNotEmpty)
-                            _section(
-                              'Education',
-                              [
-                                if (resume.schoolName.isNotEmpty ||
-                                    resume.tenthPercentage.isNotEmpty)
-                                  _entry('Secondary School', [
-                                    resume.schoolName,
-                                    if (resume.tenthPercentage.isNotEmpty)
-                                      '10th: ${resume.tenthPercentage}',
-                                  ]),
-                                if (resume.intermediateInstitution.isNotEmpty ||
-                                    resume.intermediateMarks.isNotEmpty)
-                                  _entry('Intermediate', [
-                                    resume.intermediateInstitution,
-                                    if (resume.intermediateMarks.isNotEmpty)
-                                      'Marks: ${resume.intermediateMarks}',
-                                  ]),
-                                ...resume.education.map((item) {
+                            _section('Education', [
+                              if (resume.schoolName.isNotEmpty ||
+                                  resume.tenthPercentage.isNotEmpty)
+                                _entry('Secondary School', [
+                                  resume.schoolName,
+                                  if (resume.tenthPercentage.isNotEmpty)
+                                    '10th: ${resume.tenthPercentage}',
+                                ]),
+                              if (resume.intermediateInstitution.isNotEmpty ||
+                                  resume.intermediateMarks.isNotEmpty)
+                                _entry('Intermediate', [
+                                  resume.intermediateInstitution,
+                                  if (resume.intermediateMarks.isNotEmpty)
+                                    'Marks: ${resume.intermediateMarks}',
+                                ]),
+                              ...resume.education.map((item) {
                                 final title = [item.degree, item.branch]
                                     .where((value) => value.isNotEmpty)
                                     .join(' · ');
                                 return _entry(title, [
                                   item.college,
                                   item.location,
-                                  if (item.startYear.isNotEmpty || item.endYear.isNotEmpty)
+                                  if (item.startYear.isNotEmpty ||
+                                      item.endYear.isNotEmpty)
                                     '${item.startYear} – ${item.endYear}',
                                   if (item.cgpa.isNotEmpty) item.cgpa,
                                 ]);
                               }),
-                              ],
-                              order: 2,
-                            ),
+                            ], order: 2),
                           if (resume.education.isEmpty &&
                               (resume.schoolName.isNotEmpty ||
                                   resume.tenthPercentage.isNotEmpty ||
@@ -476,36 +542,41 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                                 ]),
                             ], order: 2),
                           if (resume.skills.isNotEmpty)
-                            _section(
-                              'Skills',
-                              [
-                                Wrap(
-                                  spacing: 7,
-                                  runSpacing: 7,
-                                  children: resume.skills
-                                      .map(
-                                        (item) => Chip(
-                                          label: Text(item, style: const TextStyle(color: Color(0xFF29303C))),
-                                          visualDensity: VisualDensity.compact,
-                                          side: BorderSide.none,
-                                          backgroundColor: _accent.withValues(alpha: .09),
+                            _section('Skills', [
+                              Wrap(
+                                spacing: 7,
+                                runSpacing: 7,
+                                children: resume.skills
+                                    .map(
+                                      (item) => Chip(
+                                        label: Text(
+                                          item,
+                                          style: const TextStyle(
+                                            color: Color(0xFF29303C),
+                                          ),
                                         ),
-                                      )
-                                      .toList(),
-                                ),
-                              ],
-                              order: 3,
-                            ),
+                                        visualDensity: VisualDensity.compact,
+                                        side: BorderSide.none,
+                                        backgroundColor: const Color(
+                                          0xFFE9ECE8,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ], order: 3),
                           if (resume.projects.isNotEmpty)
                             _section(
                               'Projects',
                               resume.projects
-                                  .map((item) => _entry(item.name, [
-                                        item.description,
-                                        if (item.technologies.isNotEmpty)
-                                          'Technologies: ${item.technologies}',
-                                        item.projectLink,
-                                  ]))
+                                  .map(
+                                    (item) => _entry(item.name, [
+                                      item.description,
+                                      if (item.technologies.isNotEmpty)
+                                        'Technologies: ${item.technologies}',
+                                      item.projectLink,
+                                    ]),
+                                  )
                                   .toList(),
                               order: 4,
                             ),
@@ -531,11 +602,13 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                             _section(
                               'Certifications',
                               resume.certifications
-                                  .map((item) => _entry(item.name, [
-                                        item.organization,
-                                        item.issueDate,
-                                        item.credentialUrl,
-                                  ]))
+                                  .map(
+                                    (item) => _entry(item.name, [
+                                      item.organization,
+                                      item.issueDate,
+                                      item.credentialUrl,
+                                    ]),
+                                  )
                                   .toList(),
                               order: 6,
                             ),
@@ -543,11 +616,13 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                             _section(
                               'Achievements',
                               resume.achievements
-                                  .map((item) => _entry(item.title, [
-                                        item.organization,
-                                        item.date,
-                                        item.description,
-                                  ]))
+                                  .map(
+                                    (item) => _entry(item.title, [
+                                      item.organization,
+                                      item.date,
+                                      item.description,
+                                    ]),
+                                  )
                                   .toList(),
                               order: 7,
                             ),
@@ -578,22 +653,29 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                     itemBuilder: (_) => [
                       PopupMenuItem(
                         value: _polishResume,
-                        child: const ListTile(leading: Icon(Icons.auto_awesome), title: Text('Polish whole resume')),
+                        child: const ListTile(
+                          leading: Icon(Icons.auto_awesome),
+                          title: Text('Polish whole resume'),
+                        ),
                       ),
                       PopupMenuItem(
                         value: _openSurgicalEdit,
-                        child: const ListTile(leading: Icon(Icons.chat_bubble_outline), title: Text('Quick edit a section')),
-                      ),
-                      PopupMenuItem(
-                        value: _askAi,
-                        child: const ListTile(leading: Icon(Icons.forum_outlined), title: Text('Ask the assistant')),
+                        child: const ListTile(
+                          leading: Icon(Icons.chat_bubble_outline),
+                          title: Text('Quick edit a section'),
+                        ),
                       ),
                     ],
                     child: AbsorbPointer(
                       child: OutlinedButton.icon(
                         onPressed: () {},
                         icon: _polishing
-                            ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Icon(Icons.auto_awesome_outlined),
                         label: Text(_polishing ? 'Writing…' : 'AI'),
                       ),
@@ -604,7 +686,10 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
                     child: FilledButton.icon(
                       onPressed: _exporting ? null : _export,
                       icon: _exporting
-                          ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(_exporting ? 'Preparing…' : 'Export PDF'),
                     ),
@@ -619,49 +704,60 @@ class _ResumePreviewScreenState extends State<ResumePreviewScreen>
   }
 
   Widget _section(String title, List<Widget> items, {required int order}) =>
-      _animateBlock(Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: _template.layout == 'centered'
-              ? CrossAxisAlignment.center
-              : CrossAxisAlignment.start,
-          children: [
-            Text(
-              title.toUpperCase(),
-              textAlign: _template.layout == 'centered' ? TextAlign.center : null,
-              style: TextStyle(
-                color: _accent,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-                fontSize: 12 * _fontScale,
+      _animateBlock(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: _template.layout == 'centered'
+                ? CrossAxisAlignment.center
+                : CrossAxisAlignment.start,
+            children: [
+              Text(
+                title.toUpperCase(),
+                textAlign: _template.layout == 'centered'
+                    ? TextAlign.center
+                    : null,
+                style: TextStyle(
+                  color: _accent,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                  fontSize: 12 * _fontScale,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Container(height: 1, color: _accent.withValues(alpha: .55)),
-            const SizedBox(height: 8),
-            ...items,
-          ],
+              const SizedBox(height: 2),
+              Container(height: 1, color: _accent.withValues(alpha: .55)),
+              const SizedBox(height: 8),
+              ...items,
+            ],
+          ),
         ),
-      ), order);
+        order,
+      );
 
   Widget _entry(String title, List<String> details) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (title.isNotEmpty)
-              Text(
-                title,
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12 * _fontScale),
-              ),
-            for (final detail in details.where((value) => value.trim().isNotEmpty))
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Text(detail, style: TextStyle(fontSize: 11 * _fontScale, height: 1.35)),
-              ),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title.isNotEmpty)
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 12 * _fontScale,
+            ),
+          ),
+        for (final detail in details.where((value) => value.trim().isNotEmpty))
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(
+              detail,
+              style: TextStyle(fontSize: 11 * _fontScale, height: 1.35),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _SurgicalEditSheet extends StatefulWidget {
@@ -677,44 +773,96 @@ class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
   final _instruction = TextEditingController();
   String _target = 'summary';
   String? _suggestion;
+  Map<String, dynamic>? _suggestedSection;
   String? _lastRequest;
   bool _sending = false;
 
   @override
-  void dispose() { _instruction.dispose(); super.dispose(); }
+  void dispose() {
+    _instruction.dispose();
+    super.dispose();
+  }
 
-  List<(String, String)> get _targets => [
-    if (widget.resume.summary.trim().isNotEmpty) ('summary', 'Profile summary'),
-    for (var i = 0; i < widget.resume.experiences.length; i++)
-      if (widget.resume.experiences[i].description.trim().isNotEmpty) ('experience:$i', 'Experience · ${widget.resume.experiences[i].jobTitle}'),
-    for (var i = 0; i < widget.resume.projects.length; i++)
-      if (widget.resume.projects[i].description.trim().isNotEmpty) ('project:$i', 'Project · ${widget.resume.projects[i].name}'),
-    for (var i = 0; i < widget.resume.achievements.length; i++)
-      if (widget.resume.achievements[i].description.trim().isNotEmpty) ('achievement:$i', 'Achievement · ${widget.resume.achievements[i].title}'),
-  ];
-
-  String _textFor(String key) {
-    if (key == 'summary') return widget.resume.summary;
-    final parts = key.split(':');
-    final index = int.parse(parts[1]);
-    return switch (parts[0]) {
-      'experience' => widget.resume.experiences[index].description,
-      'project' => widget.resume.projects[index].description,
-      _ => widget.resume.achievements[index].description,
+  Map<String, dynamic> _section(String key) {
+    final json = widget.resume.toJson();
+    return switch (key) {
+      'personal' => {
+        for (final k in [
+          'name',
+          'email',
+          'phone',
+          'location',
+          'linkedin',
+          'github',
+          'portfolio',
+        ])
+          k: json[k],
+      },
+      'education' => {
+        for (final k in [
+          'schoolName',
+          'tenthPercentage',
+          'intermediateInstitution',
+          'intermediateMarks',
+          'education',
+        ])
+          k: json[k],
+      },
+      'skills' => {'skills': json['skills']},
+      'projects' => {'projects': json['projects']},
+      'experience' => {'experiences': json['experiences']},
+      'certifications' => {'certifications': json['certifications']},
+      'achievements' => {'achievements': json['achievements']},
+      _ => {'summary': json['summary']},
     };
   }
+
+  List<(String, String)> get _targets => [
+    ('personal', 'Personal information'),
+    if (widget.resume.education.isNotEmpty ||
+        widget.resume.schoolName.isNotEmpty ||
+        widget.resume.intermediateInstitution.isNotEmpty)
+      ('education', 'Education'),
+    if (widget.resume.skills.isNotEmpty) ('skills', 'Skills'),
+    if (widget.resume.projects.isNotEmpty) ('projects', 'Projects'),
+    if (widget.resume.experiences.isNotEmpty) ('experience', 'Experience'),
+    if (widget.resume.certifications.isNotEmpty)
+      ('certifications', 'Certifications'),
+    if (widget.resume.achievements.isNotEmpty) ('achievements', 'Achievements'),
+    if (widget.resume.summary.trim().isNotEmpty) ('summary', 'Profile summary'),
+  ];
+
+  String _textFor(String key) =>
+      const JsonEncoder.withIndent('  ').convert(_section(key));
 
   Future<void> _send() async {
     final instruction = _instruction.text.trim();
     if (instruction.isEmpty || _targets.isEmpty) return;
-    setState(() { _sending = true; _suggestion = null; _lastRequest = instruction; });
+    if (!await requestGroqKey(context) || !mounted) return;
+    setState(() {
+      _sending = true;
+      _suggestion = null;
+      _suggestedSection = null;
+      _lastRequest = instruction;
+    });
     try {
-      final original = _textFor(_target);
-      final response = await ApiService.surgicalEdit(originalText: original, instruction: instruction);
+      final original = _section(_target);
+      final response = await ApiService.editSection(
+        sectionName: _target,
+        section: original,
+        instruction: instruction,
+      );
       if (!mounted) return;
-      setState(() { _suggestion = response['suggested'] as String?; });
+      setState(() {
+        _suggestedSection = response;
+        _suggestion = const JsonEncoder.withIndent('  ').convert(response);
+      });
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not prepare that edit: $error')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not prepare that edit: $error')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -723,18 +871,52 @@ class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
   Future<void> _apply() async {
     final suggestion = _suggestion;
     if (suggestion == null) return;
-    setState(() => _setText(_target, suggestion));
+    final section = _suggestedSection;
+    if (section == null) return;
+    final merged = widget.resume.toJson()..addAll(section);
+    final updated = ResumeData.fromJson(merged);
+    switch (_target) {
+      case 'personal':
+        widget.resume.name = updated.name;
+        widget.resume.email = updated.email;
+        widget.resume.phone = updated.phone;
+        widget.resume.location = updated.location;
+        widget.resume.linkedin = updated.linkedin;
+        widget.resume.github = updated.github;
+        widget.resume.portfolio = updated.portfolio;
+        break;
+      case 'education':
+        widget.resume.schoolName = updated.schoolName;
+        widget.resume.tenthPercentage = updated.tenthPercentage;
+        widget.resume.intermediateInstitution = updated.intermediateInstitution;
+        widget.resume.intermediateMarks = updated.intermediateMarks;
+        widget.resume.education = updated.education;
+        break;
+      case 'skills':
+        widget.resume.skills = updated.skills;
+        break;
+      case 'projects':
+        widget.resume.projects = updated.projects;
+        break;
+      case 'experience':
+        widget.resume.experiences = updated.experiences;
+        break;
+      case 'certifications':
+        widget.resume.certifications = updated.certifications;
+        break;
+      case 'achievements':
+        widget.resume.achievements = updated.achievements;
+        break;
+      case 'summary':
+        widget.resume.summary = updated.summary;
+        break;
+    }
     await widget.onApplied();
-    if (mounted) setState(() { _suggestion = null; _instruction.clear(); });
-  }
-
-  void _setText(String key, String text) {
-    if (key == 'summary') { widget.resume.summary = text; return; }
-    final parts = key.split(':'); final index = int.parse(parts[1]);
-    switch (parts[0]) {
-      case 'experience': widget.resume.experiences[index].description = text; break;
-      case 'project': widget.resume.projects[index].description = text; break;
-      default: widget.resume.achievements[index].description = text; break;
+    if (mounted) {
+      setState(() {
+        _suggestion = null;
+        _instruction.clear();
+      });
     }
   }
 
@@ -742,36 +924,174 @@ class _SurgicalEditSheetState extends State<_SurgicalEditSheet> {
   Widget build(BuildContext context) {
     final targets = _targets;
     if (targets.isEmpty) {
-      return SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.chat_bubble_outline, size: 30), const SizedBox(height: 10),
-        const Text('Add a profile summary or a description first to make a quick edit.'),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-      ])));
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.chat_bubble_outline, size: 30),
+              const SizedBox(height: 10),
+              const Text(
+                'Add a profile summary or a description first to make a quick edit.',
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
     if (!targets.any((item) => item.$1 == _target)) _target = targets.first.$1;
-    return SafeArea(child: Padding(
-      padding: EdgeInsets.fromLTRB(20, 6, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [const Expanded(child: Text('Quick resume edit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))]),
-        Text('Choose one section. Review the suggestion before applying it.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<String>(initialValue: _target, decoration: const InputDecoration(labelText: 'Section'), items: [for (final item in targets) DropdownMenuItem(value: item.$1, child: Text(item.$2, overflow: TextOverflow.ellipsis))], onChanged: (value) => setState(() { if (value != null) { _target = value; _suggestion = null; } })),
-        const SizedBox(height: 9),
-        if (_lastRequest != null) Padding(padding: const EdgeInsets.only(bottom: 7), child: Text('You: $_lastRequest', maxLines: 2, overflow: TextOverflow.ellipsis)),
-        if (_suggestion != null) Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Current text', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
-          Text(_textFor(_target)), const SizedBox(height: 8),
-          const Text('Suggested edit', style: TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 5),
-          Text(_suggestion!), const SizedBox(height: 10),
-          Row(children: [TextButton(onPressed: () => setState(() => _suggestion = null), child: const Text('Discard')), const Spacer(), FilledButton.icon(onPressed: _apply, icon: const Icon(Icons.check), label: const Text('Apply edit'))]),
-        ])),
-        const SizedBox(height: 9),
-        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Expanded(child: TextField(controller: _instruction, minLines: 1, maxLines: 3, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: const InputDecoration(hintText: 'e.g. Make this more concise', border: OutlineInputBorder()))),
-          const SizedBox(width: 8),
-          IconButton.filled(onPressed: _sending ? null : _send, tooltip: 'Suggest a small edit', icon: _sending ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
-        ]),
-      ])),
-    ));
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          6,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Quick resume edit',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              Text(
+                'Choose one section. Review the suggestion before applying it.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: _target,
+                decoration: const InputDecoration(labelText: 'Section'),
+                items: [
+                  for (final item in targets)
+                    DropdownMenuItem(
+                      value: item.$1,
+                      child: Text(item.$2, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (value) => setState(() {
+                  if (value != null) {
+                    _target = value;
+                    _suggestion = null;
+                  }
+                }),
+              ),
+              const SizedBox(height: 9),
+              if (_lastRequest != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Text(
+                    'You: $_lastRequest',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              if (_suggestion != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Current text',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SelectableText(_textFor(_target)),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Suggested edit',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(_suggestion!),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => setState(() => _suggestion = null),
+                            child: const Text('Discard'),
+                          ),
+                          const Spacer(),
+                          FilledButton.icon(
+                            onPressed: _apply,
+                            icon: const Icon(Icons.check),
+                            label: const Text('Apply edit'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 9),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _instruction,
+                      minLines: 1,
+                      maxLines: 3,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _send(),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Make this more concise',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: _sending ? null : _send,
+                    tooltip: 'Suggest a small edit',
+                    icon: _sending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
