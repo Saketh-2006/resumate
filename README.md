@@ -1,51 +1,35 @@
-# ResuMate AI
+# Resumate
 
-ResuMate AI is a Flutter resume builder. Resume editing, local drafts, templates,
-PDF export, and LaTeX export work offline. AI features call the ResuMate backend;
-the app never stores or sends a Groq API key.
+A Flutter resume builder. Building a resume, saved drafts, templates, PDF and
+LaTeX export all work offline. AI features (polish, summaries, quick edits,
+chat) call Groq's `openai/gpt-oss-120b` directly from the phone.
 
-## AI backend
+## Build an APK to share
 
-`backend/worker.js` is a Cloudflare Worker proxy for Groq. Every AI feature in
-the app uses `ApiService.chat`, which sends requests to the configured Worker.
-The Worker pins the model and adds the same server-side `GROQ_API_KEY` to every
-provider request. It validates request size and message shape, caps completion
-tokens, and never returns the provider credential to the app.
-The Worker rate-limits each app installation to 30 AI requests per minute.
+1. Get a free key at https://console.groq.com/keys
+2. Put it in `.env` (git-ignored, never commit it):
 
-Configure and deploy the backend:
+   ```bash
+   cp .env.example .env   # then edit: GROQ_API_KEY=gsk_...
+   ```
 
-```bash
-cd backend
-npm test
-npx wrangler login
-npx wrangler secret put GROQ_API_KEY
-npx wrangler deploy
-```
+3. Build:
 
-Enter the Groq key in Wrangler's interactive prompt. Do not put it in source,
-`wrangler.toml`, a Flutter build define, or the APK. For local backend work,
-copy `.dev.vars.example` to `.dev.vars`, set the local key there, then run
-`npm run dev`.
+   ```bash
+   ./build_apk.sh
+   ```
 
-Cloudflare's deployment prints the Worker URL. Build the mobile app with that
-public URL (it is not a secret):
+Share `build/app/outputs/flutter-apk/app-release.apk`. The key is baked into the
+APK, so it works on any phone with no setup. The script refuses to build
+without the key, so you can't ship an APK where AI silently doesn't work.
 
-```bash
-cd ..
-flutter pub get
-flutter build apk --release --dart-define=AI_BACKEND_URL=https://YOUR-WORKER.YOUR-ACCOUNT.workers.dev
-```
+Don't commit the key: this repo is public, and GitHub reports leaked Groq keys
+so Groq revokes them, which would break AI in every APK you've shared.
 
-If `AI_BACKEND_URL` is not supplied, the app shows that the AI service is not
-configured. Deploy the Worker and rebuild with its URL before distributing an
-AI-enabled APK. Cloudflare secret configuration is documented at
-[Workers secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
-
-## Run and test the Flutter app
+## Develop
 
 ```bash
 flutter pub get
-flutter run --dart-define=AI_BACKEND_URL=https://YOUR-WORKER.YOUR-ACCOUNT.workers.dev
+flutter run --dart-define-from-file=.env
 flutter test
 ```
